@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+captures/
+
+# Local config — never commit
+local.properties
+
+# macOS
+.DS_Store
+
+# Keystore files — never commit secrets
+*.jks
+*.keystore
+
+# Generated files
+gen/
+out/

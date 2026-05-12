@@ -1,0 +1,593 @@
+# TrustShield — Final UI/UX Design Reference Document
+
+# Design Vision
+
+TrustShield should feel like:
+
+* a modern fintech security platform
+* a trusted banking protection layer
+* calm and professional
+* secure but not aggressive
+* intelligent but lightweight
+
+The UI must communicate:
+
+```plaintext
+Confidence
+Security
+Trust
+Protection
+Financial Safety
+```
+
+NOT:
+
+* hacker aesthetics
+* neon cybersecurity visuals
+* overwhelming enterprise dashboards
+* panic-driven warning screens
+
+The design language should combine:
+
+* fintech UX
+* SBI-inspired trust colors
+* modern Android Material3 patterns
+* clean security signaling
+
+---
+
+# Core Design Philosophy
+
+## Emotional Goal
+
+When users open TrustShield, they should feel:
+
+```plaintext
+“I am protected.”
+```
+
+NOT:
+
+```plaintext
+“My phone is under attack.”
+```
+
+This distinction is extremely important.
+
+---
+
+# Design Personality
+
+| Attribute          | Style            |
+| ------------------ | ---------------- |
+| Security           | Calm + confident |
+| Banking feel       | Professional     |
+| Cybersecurity feel | Intelligent      |
+| Visual style       | Minimal modern   |
+| Motion             | Smooth + subtle  |
+| UX                 | Low-friction     |
+
+---
+
+# Final Color System
+
+## Primary Brand Colors
+
+| Token          | Hex     | Usage                   |
+| -------------- | ------- | ----------------------- |
+| Primary Purple | #9A3E76 | Primary actions         |
+| SBI Navy       | #292075 | Headers / navigation    |
+| SBI Cyan       | #00B5EF | Highlights / indicators |
+| Accent Blue    | #577CB7 | Informational UI        |
+
+---
+
+## State Colors
+
+| State         | Hex     | Usage           |
+| ------------- | ------- | --------------- |
+| Success Green | #419A29 | SAFE state      |
+| Warning Amber | #F5A623 | WARNING state   |
+| Error Red     | #D54B34 | HIGH_RISK state |
+
+---
+
+## Neutral Colors
+
+| Token          | Hex     | Usage          |
+| -------------- | ------- | -------------- |
+| Background     | #F2F2F4 | App background |
+| Surface White  | #FFFFFF | Cards          |
+| Primary Text   | #40404C | Main content   |
+| Secondary Text | #A3A3A3 | Metadata       |
+
+---
+
+# Recommended Usage Rules
+
+## Use these as dominant colors:
+
+* #292075
+* #9A3E76
+* #D54B34
+
+## Use these sparingly:
+
+* #00B5EF
+* #F5A623
+
+Too much cyan or amber weakens the premium fintech feel.
+
+---
+
+# Typography System
+
+## Font Family
+
+Primary:
+
+```plaintext
+Inter
+```
+
+Fallback:
+
+```plaintext
+Roboto
+System Sans Serif
+```
+
+---
+
+# Typography Scale
+
+| Element        | Size    | Weight   |
+| -------------- | ------- | -------- |
+| Display        | 28px    | Bold     |
+| Section Header | 20px    | SemiBold |
+| Card Header    | 16px    | Medium   |
+| Body           | 15–16px | Regular  |
+| Caption        | 12px    | Regular  |
+| Button Text    | 15px    | Bold     |
+
+---
+
+# Typography Guidelines
+
+* prioritize readability
+* avoid thin fonts
+* use strong hierarchy
+* security explanations must be easily readable
+
+---
+
+# Layout System
+
+## Grid
+
+```plaintext
+4-column mobile grid
+20px side margins
+16px gutters
+```
+
+---
+
+# Spacing System
+
+Strict 8pt spacing system:
+
+```plaintext
+8px
+16px
+24px
+32px
+```
+
+Never use random spacing values.
+
+---
+
+# Card Styling
+
+| Property | Value                         |
+| -------- | ----------------------------- |
+| Radius   | 12px                          |
+| Padding  | 16px                          |
+| Shadow   | 0px 4px 12px rgba(0,0,0,0.05) |
+
+Cards should feel:
+
+* elevated
+* soft
+* trustworthy
+* modern
+
+---
+
+# Motion Guidelines
+
+## Use:
+
+* subtle fade animations
+* slide-up transitions
+* soft loading animations
+* smooth progress indicators
+
+## Avoid:
+
+* aggressive flashing
+* jitter
+* excessive motion
+* hacker animations
+
+---
+
+# Main App Architecture
+
+# 1. Dashboard Screen
+
+Purpose:
+
+* security overview
+* trust status
+* recent threats
+* quick actions
+
+---
+
+# Dashboard Header
+
+Gradient:
+
+```plaintext
+#292075 → #9A3E76
+```
+
+Height:
+
+```plaintext
+200px
+```
+
+Content:
+
+* greeting
+* protection status
+* trust score
+* active protection badge
+
+---
+
+# Main Security Card
+
+Floating elevated card.
+
+Shows:
+
+* Protection Active
+* Threats Blocked
+* Security Score
+* Last Protected Event
+
+Example:
+
+```plaintext
+Protected by TrustShield
+3 phishing attempts blocked today
+```
+
+---
+
+# Quick Action Grid
+
+4 actions:
+
+| Action         | Purpose            |
+| -------------- | ------------------ |
+| Scan Link      | manual URL scan    |
+| Verify APK     | APK analysis       |
+| Secure Session | browser protection |
+| Threat Report  | history/logs       |
+
+---
+
+# Threat Feed Section
+
+Purpose:
+
+* recent detections
+* suspicious activities
+* phishing attempts
+
+Each item:
+
+* icon
+* timestamp
+* risk state
+* short explanation
+
+---
+
+# Bottom Navigation
+
+Tabs:
+
+```plaintext
+Dashboard
+Protection
+Activity
+Settings
+```
+
+---
+
+# 2. WarningActivity (MOST IMPORTANT SCREEN)
+
+This is the hero screen of the MVP.
+
+This screen matters more than the dashboard.
+
+---
+
+# Warning Screen Goals
+
+User should feel:
+
+```plaintext
+“This system protected me.”
+```
+
+NOT:
+
+```plaintext
+“My phone is hacked.”
+```
+
+---
+
+# Warning Screen Style
+
+* clean white surface
+* elevated threat card
+* controlled red accents
+* minimal panic styling
+
+Avoid:
+
+* full red screens
+* flashing alerts
+* giant danger text
+
+---
+
+# Warning Screen Layout
+
+```plaintext
+⚠ Potential Phishing Attempt
+
+This website may impersonate SBI Bank
+and attempt to steal login credentials.
+
+Risk Level: HIGH
+
+Signals Detected:
+• suspicious banking domain
+• typo similarity
+• suspicious TLD
+
+Detection Source:
+BACKEND VERIFICATION
+
+Confidence:
+91%
+
+[ Close Browser ]
+[ Continue Anyway ]
+```
+
+---
+
+# Warning Screen UI Elements
+
+## Header
+
+* warning icon
+* threat title
+* concise explanation
+
+---
+
+## Threat Card
+
+Contains:
+
+* URL
+* verdict
+* confidence
+* risk reasons
+
+---
+
+## Risk Chips
+
+Examples:
+
+* suspicious TLD
+* APK indicator
+* typo domain
+* shortened redirect
+
+---
+
+## Buttons
+
+Primary:
+
+```plaintext
+Close Browser
+```
+
+Secondary:
+
+```plaintext
+Continue Anyway
+```
+
+---
+
+# Button Styling
+
+## Close Browser
+
+* filled
+* dark navy or red
+
+## Continue Anyway
+
+* outlined
+* less visually dominant
+
+---
+
+# Threat State Design System
+
+# SAFE
+
+| Element | Style        |
+| ------- | ------------ |
+| Color   | Green        |
+| Icon    | Shield check |
+| Text    | Protected    |
+
+---
+
+# WARNING
+
+| Element | Style                        |
+| ------- | ---------------------------- |
+| Color   | Amber                        |
+| Icon    | Alert                        |
+| Text    | Suspicious activity detected |
+
+---
+
+# HIGH_RISK
+
+| Element | Style                             |
+| ------- | --------------------------------- |
+| Color   | Red                               |
+| Icon    | Warning triangle                  |
+| Text    | Potential banking compromise risk |
+
+---
+
+# Accessibility Guidelines
+
+* maintain high contrast
+* readable font sizes
+* large touch targets
+* avoid tiny warning text
+* support Android dark mode later
+
+---
+
+# Recommended Icons
+
+Use:
+
+```plaintext
+Material Symbols Rounded
+```
+
+Suggested icons:
+
+* shield
+* warning
+* verified_user
+* security
+* link
+* bug_report
+* lock
+
+---
+
+# Recommended UI Components
+
+Use:
+
+* Material3 Cards
+* Elevated Buttons
+* Assist Chips
+* Progress Indicators
+* Compose Animations
+
+Avoid:
+
+* dense tables
+* enterprise-style dashboards
+* complicated graphs
+
+---
+
+# Final UX Goal
+
+The entire product should communicate:
+
+```plaintext
+Calm Financial Protection
+```
+
+NOT:
+
+```plaintext
+Aggressive Cybersecurity Monitoring
+```
+
+---
+
+# Final MVP Screens
+
+## REQUIRED
+
+| Screen          | Priority |
+| --------------- | -------- |
+| Dashboard       | REQUIRED |
+| WarningActivity | REQUIRED |
+
+---
+
+## OPTIONAL
+
+| Screen           | Priority |
+| ---------------- | -------- |
+| Threat History   | OPTIONAL |
+| APK Verification | OPTIONAL |
+| Settings         | OPTIONAL |
+
+---
+
+# Final Design Principles
+
+TrustShield should always feel:
+
+* modern
+* trustworthy
+* calm
+* secure
+* premium
+* banking-grade
+
+The UI must prioritize:
+
+* clarity
+* readability
+* emotional confidence
+* smooth UX
+* low friction
+
+over:
+
+* flashy effects
+* excessive technical detail
+* cybersecurity theatrics

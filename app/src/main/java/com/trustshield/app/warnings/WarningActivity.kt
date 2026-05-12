@@ -1,0 +1,522 @@
+package com.trustshield.app.warnings
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.trustshield.app.ui.theme.TrustShieldColors
+import com.trustshield.app.ui.theme.TrustShieldTheme
+import com.trustshield.app.ui.theme.TrustShieldType
+
+class WarningActivity : ComponentActivity() {
+
+    companion object {
+        private const val EXTRA_URL        = "extra_url"
+        private const val EXTRA_SCORE      = "extra_score"
+        private const val EXTRA_VERDICT    = "extra_verdict"
+        private const val EXTRA_REASONS    = "extra_reasons"
+        private const val EXTRA_SOURCE     = "extra_source"
+        private const val EXTRA_CONFIDENCE = "extra_confidence"
+
+        fun launch(
+            context: Context,
+            warning: ThreatWarning,
+            fromService: Boolean = false
+        ) {
+            val intent = Intent(context, WarningActivity::class.java).apply {
+                putExtra(EXTRA_URL,        warning.url)
+                putExtra(EXTRA_SCORE,      warning.score)
+                putExtra(EXTRA_VERDICT,    warning.verdict)
+                putStringArrayListExtra(EXTRA_REASONS, ArrayList(warning.reasons))
+                putExtra(EXTRA_SOURCE,     warning.source.name)
+                putExtra(EXTRA_CONFIDENCE, warning.confidence)
+                if (fromService) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            context.startActivity(intent)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val url        = intent.getStringExtra(EXTRA_URL)     ?: ""
+        val score      = intent.getIntExtra(EXTRA_SCORE, 0)
+        val verdict    = intent.getStringExtra(EXTRA_VERDICT) ?: "HIGH_RISK"
+        val reasons    = intent.getStringArrayListExtra(EXTRA_REASONS) ?: arrayListOf()
+        val source     = intent.getStringExtra(EXTRA_SOURCE)
+            ?.let { runCatching { DetectionSource.valueOf(it) }.getOrDefault(DetectionSource.LOCAL) }
+            ?: DetectionSource.LOCAL
+        val confidence = intent.getFloatExtra(EXTRA_CONFIDENCE, 0f)
+
+        setContent {
+            TrustShieldTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color    = TrustShieldColors.Background
+                ) {
+                    WarningScreen(
+                        url        = url,
+                        score      = score,
+                        verdict    = verdict,
+                        reasons    = reasons,
+                        source     = source,
+                        confidence = confidence,
+                        onContinue = {
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            finish()
+                        },
+                        onClose = { finish() }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Slide-up + fade-in animation wrapper ─────────────────────────────────────
+
+@Composable
+private fun AnimatedEntry(content: @Composable () -> Unit) {
+    var progress by remember { mutableFloatStateOf(0f) }
+    val animated by animateFloatAsState(
+        targetValue    = progress,
+        animationSpec  = tween(durationMillis = 420, easing = Easing { it }),
+        label          = "entry"
+    )
+    LaunchedEffect(Unit) { progress = 1f }
+    Box(
+        modifier = Modifier.graphicsLayer {
+            alpha           = animated
+            translationY    = (1f - animated) * 60f
+        }
+    ) { content() }
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
+@Composable
+fun WarningScreen(
+    url: String,
+    score: Int,
+    verdict: String,
+    reasons: List<String>,
+    source: DetectionSource,
+    confidence: Float,
+    onContinue: () -> Unit,
+    onClose: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // ── Gradient header ───────────────────────────────────────────────────
+        WarningHeader()
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        AnimatedEntry {
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ThreatCard(
+                    url        = url,
+                    score      = score,
+                    verdict    = verdict,
+                    reasons    = reasons,
+                    source     = source,
+                    confidence = confidence
+                )
+                ActionButtons(onClose = onClose, onContinue = onContinue)
+                ProtectionFooter()
+            }
+        }
+    }
+}
+
+// ── Gradient header ───────────────────────────────────────────────────────────
+
+@Composable
+private fun WarningHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(
+                    listOf(TrustShieldColors.SbiNavy, TrustShieldColors.PrimaryPurple)
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 32.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Warning icon circle
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(TrustShieldColors.ErrorRed),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text     = "⚠",
+                    fontSize = 22.sp,
+                    color    = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text  = "Potential Phishing Attempt",
+                style = TrustShieldType.display,
+                color = Color.White
+            )
+            Text(
+                text  = "This website may impersonate a bank and attempt to steal your login credentials.",
+                style = TrustShieldType.body,
+                color = Color.White.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
+// ── Elevated threat card ──────────────────────────────────────────────────────
+
+@Composable
+private fun ThreatCard(
+    url: String,
+    score: Int,
+    verdict: String,
+    reasons: List<String>,
+    source: DetectionSource,
+    confidence: Float
+) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(12.dp),
+        colors    = CardDefaults.cardColors(containerColor = TrustShieldColors.SurfaceWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Risk level badge + score row
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                RiskLevelBadge(verdict = verdict)
+                ScorePill(score = score)
+            }
+
+            // Flagged URL
+            UrlSection(url = url)
+
+            // Detection source badge
+            SourceBadge(source = source)
+
+            // Confidence bar — backend only
+            if (source == DetectionSource.BACKEND && confidence > 0f) {
+                ConfidenceBar(confidence = confidence)
+            }
+
+            // Signal chips
+            if (reasons.isNotEmpty()) {
+                SignalChips(reasons = reasons)
+            }
+        }
+    }
+}
+
+// ── Risk level badge ──────────────────────────────────────────────────────────
+
+@Composable
+private fun RiskLevelBadge(verdict: String) {
+    val (label, bg, fg) = when (verdict.uppercase()) {
+        "HIGH_RISK" -> Triple("HIGH RISK",  TrustShieldColors.ErrorRed,     Color.White)
+        "WARNING"   -> Triple("WARNING",    TrustShieldColors.WarningAmber,  Color.White)
+        else        -> Triple("SAFE",       TrustShieldColors.SuccessGreen,  Color.White)
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text  = "Risk Level: $label",
+            style = TrustShieldType.label,
+            color = fg
+        )
+    }
+}
+
+// ── Score pill ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ScorePill(score: Int) {
+    Column(horizontalAlignment = Alignment.End) {
+        Text(
+            text  = "Risk Score",
+            style = TrustShieldType.caption,
+            color = TrustShieldColors.SecondaryText
+        )
+        Text(
+            text       = score.toString(),
+            fontSize   = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color      = TrustShieldColors.ErrorRed
+        )
+    }
+}
+
+// ── URL section ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun UrlSection(url: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionLabel("Flagged URL")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(TrustShieldColors.ErrorRedSurface)
+                .border(1.dp, TrustShieldColors.ErrorRed.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                .padding(12.dp)
+        ) {
+            Text(
+                text       = url.ifEmpty { "—" },
+                style      = TrustShieldType.caption.copy(fontFamily = FontFamily.Monospace),
+                color      = TrustShieldColors.ErrorRed,
+                maxLines   = 3,
+                overflow   = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// ── Detection source badge ────────────────────────────────────────────────────
+
+@Composable
+private fun SourceBadge(source: DetectionSource) {
+    val (label, bg, fg) = when (source) {
+        DetectionSource.LOCAL   ->
+            Triple("LOCAL ANALYSIS",       TrustShieldColors.NavySurface,   TrustShieldColors.SbiNavy)
+        DetectionSource.BACKEND ->
+            Triple("BACKEND VERIFICATION", TrustShieldColors.PurpleSurface, TrustShieldColors.PrimaryPurple)
+    }
+    Row(
+        modifier          = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(fg)
+        )
+        Text(
+            text  = "Detection Source: $label",
+            style = TrustShieldType.label,
+            color = fg
+        )
+    }
+}
+
+// ── Confidence bar ────────────────────────────────────────────────────────────
+
+@Composable
+private fun ConfidenceBar(confidence: Float) {
+    val pct = (confidence * 100).toInt().coerceIn(0, 100)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            SectionLabel("Backend Confidence")
+            Text(
+                text  = "$pct%",
+                style = TrustShieldType.cardHeader,
+                color = TrustShieldColors.PrimaryPurple
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(TrustShieldColors.Background)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(confidence.coerceIn(0f, 1f))
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(TrustShieldColors.PrimaryPurple, TrustShieldColors.ErrorRed)
+                        )
+                    )
+            )
+        }
+    }
+}
+
+// ── Signal chips ──────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SignalChips(reasons: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionLabel("Signals Detected")
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement   = Arrangement.spacedBy(8.dp)
+        ) {
+            reasons.forEach { reason ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(TrustShieldColors.ErrorRedSurface)
+                        .border(
+                            1.dp,
+                            TrustShieldColors.ErrorRed.copy(alpha = 0.4f),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text  = reason,
+                        style = TrustShieldType.caption,
+                        color = TrustShieldColors.ErrorRed
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Action buttons ────────────────────────────────────────────────────────────
+
+@Composable
+private fun ActionButtons(onClose: () -> Unit, onContinue: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Primary — Close Browser
+        Button(
+            onClick  = onClose,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape  = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = TrustShieldColors.SbiNavy
+            )
+        ) {
+            Text(
+                text  = "Close Browser",
+                style = TrustShieldType.buttonText,
+                color = Color.White
+            )
+        }
+
+        // Secondary — Continue Anyway
+        OutlinedButton(
+            onClick  = onContinue,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape  = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp, TrustShieldColors.SecondaryText.copy(alpha = 0.5f)
+            )
+        ) {
+            Text(
+                text  = "Continue Anyway",
+                style = TrustShieldType.buttonText,
+                color = TrustShieldColors.SecondaryText
+            )
+        }
+    }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProtectionFooter() {
+    Row(
+        modifier              = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        Text(text = "🛡", fontSize = 14.sp)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text  = "Protected by TrustShield",
+            style = TrustShieldType.caption,
+            color = TrustShieldColors.SecondaryText
+        )
+    }
+}
+
+// ── Shared label ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text  = text.uppercase(),
+        style = TrustShieldType.label,
+        color = TrustShieldColors.SecondaryText
+    )
+}
