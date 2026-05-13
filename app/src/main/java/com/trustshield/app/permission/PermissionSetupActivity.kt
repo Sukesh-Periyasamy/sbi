@@ -1,16 +1,21 @@
 package com.trustshield.app.permission
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,30 +66,28 @@ import com.trustshield.app.ui.theme.TrustShieldTheme
 import com.trustshield.app.ui.theme.TrustShieldType
 import kotlinx.coroutines.launch
 
-class PermissionSetupActivity : ComponentActivity() {
-
-    override fun onResume() {
-        super.onResume()
-        // Re-render on every resume so status indicators update after the user
-        // returns from a Settings screen without needing a full restart.
-        setContent { PermissionSetupScreen() }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { PermissionSetupScreen() }
-    }
-}
+private const val TAG = "TrustShield"
 
 // ── Runtime permission checks ─────────────────────────────────────────────────
 
+/**
+ * Uses ComponentName.flattenToString() to build the exact string Android stores
+ * in ENABLED_ACCESSIBILITY_SERVICES — avoids any manual string formatting mismatch.
+ * Format: "com.trustshield.app/com.trustshield.app.service.TrustShieldAccessibilityService"
+ */
 fun isAccessibilityEnabled(context: Context): Boolean {
-    val service = "${context.packageName}/${TrustShieldAccessibilityService::class.java.canonicalName}"
+    val expected = ComponentName(
+        context,
+        TrustShieldAccessibilityService::class.java
+    ).flattenToString()
+
     val enabled = Settings.Secure.getString(
         context.contentResolver,
         Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
     ) ?: return false
-    return enabled.split(':').any { it.equals(service, ignoreCase = true) }
+
+    // The system stores a colon-separated list of enabled service component names
+    return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
 }
 
 fun isOverlayPermissionGranted(context: Context): Boolean =
@@ -100,6 +102,87 @@ fun allPermissionsGranted(context: Context): Boolean =
     isAccessibilityEnabled(context) &&
     isOverlayPermissionGranted(context) &&
     isBatteryOptimizationDisabled(context)
+
+/**
+ * Opens the correct overlay permission screen with a three-level fallback:
+ *   1. Standard Android ACTION_MANAGE_OVERLAY_PERMISSION (works on stock Android)
+ *   2. MIUI-specific permission editor (Xiaomi/Poco devices)
+ *   3. App details settings (universal last resort)
+ */
+fun openOverlaySettings(context: Context) {
+    try {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:${context.packageName}")
+        )
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        try {
+            // MIUI fallback — opens the real per-app permission editor
+            val miuiIntent = Intent("miui.intent.action.APP_PERM_EDITOR")
+            miuiIntent.setClassName(
+                "com.miui.securitycenter",
+                "com.miui.permcenter.permissions.PermissionsEditorActivity"
+            )
+            miuiIntent.putExtra("extra_pkgname", context.packageName)
+            miuiIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(miuiIntent)
+        } catch (ex: Exception) {
+            // Final fallback — app details page where overlay can be toggled
+            val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            fallbackIntent.data = Uri.parse("package:${context.packageName}")
+            fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(fallbackIntent)
+        }
+    }
+}
+
+// ── Activity ──────────────────────────────────────────────────────────────────
+
+class PermissionSetupActivity : ComponentActivity() {
+
+    // Permission states hoisted to Activity scope so onResume() can update them
+    // directly — Compose observes these and recomposes only the affected subtrees.
+    private var accessibilityEnabled = mutableStateOf(false)
+    private var overlayEnabled       = mutableStateOf(false)
+    private var batteryEnabled       = mutableStateOf(false)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        refreshPermissionStates()
+        setContent {
+            PermissionSetupScreen(
+                accessibilityEnabled = accessibilityEnabled.value,
+                overlayEnabled       = overlayEnabled.value,
+                batteryEnabled       = batteryEnabled.value
+            )
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshPermissionStates()
+
+        // MIUI sometimes delays propagation of the overlay permission grant by
+        // several hundred milliseconds after the user returns from Settings.
+        // Re-check after 500 ms to catch the delayed state update.
+        Handler(Looper.getMainLooper()).postDelayed({
+            overlayEnabled.value = isOverlayPermissionGranted(this)
+            Log.d(TAG, "Overlay (delayed recheck)=${overlayEnabled.value}")
+        }, 500)
+    }
+
+    private fun refreshPermissionStates() {
+        accessibilityEnabled.value = isAccessibilityEnabled(this)
+        overlayEnabled.value       = isOverlayPermissionGranted(this)
+        batteryEnabled.value       = isBatteryOptimizationDisabled(this)
+
+        Log.d(TAG, "Accessibility=${accessibilityEnabled.value}")
+        Log.d(TAG, "Overlay=${overlayEnabled.value}")
+        Log.d(TAG, "Battery=${batteryEnabled.value}")
+    }
+}
 
 // ── Slide-up + fade animation ─────────────────────────────────────────────────
 
@@ -121,16 +204,15 @@ private fun AnimatedEntry(delayMs: Int = 0, content: @Composable () -> Unit) {
 // ── Root screen ───────────────────────────────────────────────────────────────
 
 @Composable
-fun PermissionSetupScreen() {
-    val context       = LocalContext.current
+fun PermissionSetupScreen(
+    accessibilityEnabled: Boolean,
+    overlayEnabled: Boolean,
+    batteryEnabled: Boolean
+) {
+    val context       = androidx.compose.ui.platform.LocalContext.current
     val snackbarState = remember { SnackbarHostState() }
     val scope         = rememberCoroutineScope()
-
-    // Live status — recomputed on every recomposition (triggered by onResume setContent)
-    val accessibilityOn = isAccessibilityEnabled(context)
-    val overlayOn       = isOverlayPermissionGranted(context)
-    val batteryOn       = isBatteryOptimizationDisabled(context)
-    val allGranted      = accessibilityOn && overlayOn && batteryOn
+    val allGranted    = accessibilityEnabled && overlayEnabled && batteryEnabled
 
     TrustShieldTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = TrustShieldColors.Background) {
@@ -140,10 +222,8 @@ fun PermissionSetupScreen() {
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // ── Header ────────────────────────────────────────────────
                     SetupHeader(allGranted = allGranted)
 
-                    // ── Permission cards ──────────────────────────────────────
                     Column(
                         modifier            = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -153,8 +233,8 @@ fun PermissionSetupScreen() {
                                 icon        = "♿",
                                 title       = "Accessibility Access",
                                 description = "Required to detect phishing URLs inside browsers and in-app WebViews.",
-                                statusLabel = if (accessibilityOn) "ENABLED" else "DISABLED",
-                                isGranted   = accessibilityOn,
+                                statusLabel = if (accessibilityEnabled) "ENABLED" else "DISABLED",
+                                isGranted   = accessibilityEnabled,
                                 buttonLabel = "Enable Accessibility",
                                 onAction    = {
                                     context.startActivity(
@@ -170,17 +250,10 @@ fun PermissionSetupScreen() {
                                 icon        = "🪟",
                                 title       = "Display Over Other Apps",
                                 description = "Allows TrustShield warning screen to appear above browsers and Telegram.",
-                                statusLabel = if (overlayOn) "ALLOWED" else "NOT ALLOWED",
-                                isGranted   = overlayOn,
+                                statusLabel = if (overlayEnabled) "ALLOWED" else "NOT ALLOWED",
+                                isGranted   = overlayEnabled,
                                 buttonLabel = "Enable Popup Permission",
-                                onAction    = {
-                                    context.startActivity(
-                                        Intent(
-                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                            Uri.parse("package:${context.packageName}")
-                                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    )
-                                }
+                                onAction    = { openOverlaySettings(context) }
                             )
                         }
 
@@ -189,8 +262,8 @@ fun PermissionSetupScreen() {
                                 icon        = "🔋",
                                 title       = "Battery Optimization",
                                 description = "Prevents Android from killing TrustShield in the background on MIUI/Poco.",
-                                statusLabel = if (batteryOn) "UNRESTRICTED" else "RESTRICTED",
-                                isGranted   = batteryOn,
+                                statusLabel = if (batteryEnabled) "UNRESTRICTED" else "RESTRICTED",
+                                isGranted   = batteryEnabled,
                                 buttonLabel = "Disable Battery Restrictions",
                                 onAction    = {
                                     try {
@@ -201,7 +274,6 @@ fun PermissionSetupScreen() {
                                             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         )
                                     } catch (e: Exception) {
-                                        // Some OEMs don't support the direct intent — fall back
                                         context.startActivity(
                                             Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -213,7 +285,6 @@ fun PermissionSetupScreen() {
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // ── CTA button ────────────────────────────────────────
                         AnimatedEntry(delayMs = 320) {
                             CtaButton(
                                 allGranted = allGranted,
@@ -221,7 +292,10 @@ fun PermissionSetupScreen() {
                                     if (allGranted) {
                                         context.startActivity(
                                             Intent(context, MainActivity::class.java)
-                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                                .addFlags(
+                                                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                    Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                )
                                         )
                                     } else {
                                         scope.launch {
@@ -240,17 +314,16 @@ fun PermissionSetupScreen() {
                     }
                 }
 
-                // ── Snackbar ──────────────────────────────────────────────────
                 SnackbarHost(
                     hostState = snackbarState,
                     modifier  = Modifier.align(Alignment.BottomCenter)
                 ) { data ->
                     Snackbar(
-                        snackbarData    = data,
-                        containerColor  = TrustShieldColors.SbiNavy,
-                        contentColor    = Color.White,
-                        shape           = RoundedCornerShape(12.dp),
-                        modifier        = Modifier.padding(16.dp)
+                        snackbarData   = data,
+                        containerColor = TrustShieldColors.SbiNavy,
+                        contentColor   = Color.White,
+                        shape          = RoundedCornerShape(12.dp),
+                        modifier       = Modifier.padding(16.dp)
                     )
                 }
             }
@@ -273,7 +346,6 @@ private fun SetupHeader(allGranted: Boolean) {
             .padding(start = 20.dp, end = 20.dp, top = 52.dp, bottom = 36.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Shield icon circle
             Box(
                 modifier         = Modifier
                     .size(52.dp)
@@ -295,7 +367,6 @@ private fun SetupHeader(allGranted: Boolean) {
                 color = Color.White.copy(alpha = 0.82f)
             )
             Spacer(modifier = Modifier.height(4.dp))
-            // Overall status pill
             val (pillBg, pillFg, pillLabel) = if (allGranted)
                 Triple(TrustShieldColors.SuccessGreen.copy(alpha = 0.2f), TrustShieldColors.SuccessGreen, "✓  All protections active")
             else
@@ -324,10 +395,9 @@ private fun PermissionCard(
     buttonLabel: String,
     onAction: () -> Unit
 ) {
-    val statusBg  = if (isGranted) TrustShieldColors.SuccessGreen.copy(alpha = 0.1f)
-                    else           TrustShieldColors.WarningAmber.copy(alpha = 0.1f)
-    val statusFg  = if (isGranted) TrustShieldColors.SuccessGreen else TrustShieldColors.WarningAmber
-    val statusDot = if (isGranted) "●" else "●"
+    val statusBg = if (isGranted) TrustShieldColors.SuccessGreen.copy(alpha = 0.1f)
+                   else           TrustShieldColors.WarningAmber.copy(alpha = 0.1f)
+    val statusFg = if (isGranted) TrustShieldColors.SuccessGreen else TrustShieldColors.WarningAmber
 
     Card(
         modifier  = Modifier.fillMaxWidth(),
@@ -336,12 +406,11 @@ private fun PermissionCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Title row
             Row(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -362,7 +431,6 @@ private fun PermissionCard(
                         color = TrustShieldColors.PrimaryText
                     )
                 }
-                // Status badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -370,10 +438,10 @@ private fun PermissionCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(
-                        verticalAlignment      = Alignment.CenterVertically,
-                        horizontalArrangement  = Arrangement.spacedBy(4.dp)
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(text = statusDot, fontSize = 8.sp, color = statusFg)
+                        Text(text = "●", fontSize = 8.sp, color = statusFg)
                         Text(
                             text       = statusLabel,
                             fontSize   = 10.sp,
@@ -384,14 +452,12 @@ private fun PermissionCard(
                 }
             }
 
-            // Description
             Text(
                 text  = description,
                 style = TrustShieldType.caption,
                 color = TrustShieldColors.SecondaryText
             )
 
-            // Action button — hidden when already granted
             if (!isGranted) {
                 Button(
                     onClick  = onAction,
@@ -410,13 +476,16 @@ private fun PermissionCard(
                     )
                 }
             } else {
-                // Granted confirmation row
                 Row(
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(text = "✓", fontSize = 14.sp, color = TrustShieldColors.SuccessGreen,
-                         fontWeight = FontWeight.Bold)
+                    Text(
+                        text       = "✓",
+                        fontSize   = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = TrustShieldColors.SuccessGreen
+                    )
                     Text(
                         text  = "Permission granted",
                         style = TrustShieldType.caption,
@@ -456,9 +525,7 @@ private fun CtaButton(allGranted: Boolean, onContinue: () -> Unit) {
                 .fillMaxWidth()
                 .height(52.dp),
             shape  = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.5.dp, TrustShieldColors.SbiNavy.copy(alpha = 0.4f)
-            )
+            border = BorderStroke(1.5.dp, TrustShieldColors.SbiNavy.copy(alpha = 0.4f))
         ) {
             Text(
                 text  = "Continue to Protection Dashboard",
