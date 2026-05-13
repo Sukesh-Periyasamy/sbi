@@ -8,6 +8,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.trustshield.app.backend.ThreatRepository
 import com.trustshield.app.scoring.ThreatScorer
 import com.trustshield.app.scoring.ThreatVerdict
+import com.trustshield.app.session.SessionManager
+import com.trustshield.app.session.ThreatEvent
 import com.trustshield.app.warnings.DetectionSource
 import com.trustshield.app.warnings.OverlayWarningManager
 import com.trustshield.app.warnings.ThreatWarning
@@ -311,6 +313,20 @@ class TrustShieldAccessibilityService : AccessibilityService() {
         if (result.reasons.isNotEmpty()) {
             Log.d(TAG, "Reasons=${result.reasons}")
         }
+
+        // Report to SessionManager for cross-layer correlation
+        val domain = url.substringAfter("://").substringBefore("/").substringBefore("?")
+        SessionManager.report(
+            context = this,
+            event   = ThreatEvent.AccessibilityEvent(
+                domain     = domain.lowercase(),
+                timestamp  = System.currentTimeMillis(),
+                url        = url,
+                sourceApp  = sourcePkg,
+                localScore = result.score,
+                reasons    = result.reasons
+            )
+        )
 
         // HIGH_RISK → show overlay immediately, no backend needed
         if (result.verdict == ThreatVerdict.HIGH_RISK && url != lastWarnedUrl) {

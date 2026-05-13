@@ -14,6 +14,8 @@ import com.trustshield.app.MainActivity
 import com.trustshield.app.backend.ThreatRepository
 import com.trustshield.app.scoring.ThreatScorer
 import com.trustshield.app.scoring.ThreatVerdict
+import com.trustshield.app.session.SessionManager
+import com.trustshield.app.session.ThreatEvent
 import com.trustshield.app.warnings.DetectionSource
 import com.trustshield.app.warnings.ThreatWarning
 import com.trustshield.app.warnings.WarningActivity
@@ -492,6 +494,20 @@ class TrustShieldVpnService : VpnService() {
         Log.d(TAG, "Score=${result.score}")
         Log.d(TAG, "Verdict=${result.verdict}")
         if (result.reasons.isNotEmpty()) Log.d(TAG, "Reasons=${result.reasons}")
+
+        // Report to SessionManager — VPN observation type tracked for confidence bonus
+        val vpnVia = if (sniSeenDomains.contains(domain))
+            ThreatEvent.VpnObservation.SNI else ThreatEvent.VpnObservation.DNS
+        SessionManager.report(
+            context = this,
+            event   = ThreatEvent.VpnEvent(
+                domain     = domain,
+                timestamp  = System.currentTimeMillis(),
+                via        = vpnVia,
+                localScore = result.score,
+                reasons    = result.reasons
+            )
+        )
 
         when (result.verdict) {
             ThreatVerdict.HIGH_RISK -> {
