@@ -3,6 +3,8 @@ agp = "8.5.2"
 kotlin = "2.0.21"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.6"
+lifecycleViewmodel  = "2.8.6"
+savedstate          = "1.2.1"
 activityCompose = "1.9.2"
 composeBom = "2024.09.03"
 retrofit = "2.11.0"
@@ -13,6 +15,8 @@ gson = "2.11.0"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-viewmodel   = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
+androidx-savedstate            = { group = "androidx.savedstate", name = "savedstate", version.ref = "savedstate" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }

@@ -9,8 +9,8 @@ import com.trustshield.app.backend.ThreatRepository
 import com.trustshield.app.scoring.ThreatScorer
 import com.trustshield.app.scoring.ThreatVerdict
 import com.trustshield.app.warnings.DetectionSource
+import com.trustshield.app.warnings.OverlayWarningManager
 import com.trustshield.app.warnings.ThreatWarning
-import com.trustshield.app.warnings.WarningActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -312,11 +312,11 @@ class TrustShieldAccessibilityService : AccessibilityService() {
             Log.d(TAG, "Reasons=${result.reasons}")
         }
 
-        // HIGH_RISK → launch WarningActivity immediately, no backend needed
+        // HIGH_RISK → show overlay immediately, no backend needed
         if (result.verdict == ThreatVerdict.HIGH_RISK && url != lastWarnedUrl) {
             lastWarnedUrl = url
-            Log.d(TAG, "⚠ Launching WarningActivity [LOCAL] for: $url")
-            WarningActivity.launch(
+            Log.d(TAG, "⚠ Showing overlay [LOCAL] for: $url")
+            OverlayWarningManager.show(
                 context = this,
                 warning = ThreatWarning(
                     url     = url,
@@ -340,8 +340,8 @@ class TrustShieldAccessibilityService : AccessibilityService() {
                         url !in backendWarnedUrls
                     ) {
                         backendWarnedUrls += url
-                        Log.d(TAG, "⚠ Launching WarningActivity [BACKEND] for: $url")
-                        WarningActivity.launch(
+                        Log.d(TAG, "⚠ Showing overlay [BACKEND] for: $url")
+                        OverlayWarningManager.show(
                             context = this@TrustShieldAccessibilityService,
                             warning = ThreatWarning(
                                 url        = url,
