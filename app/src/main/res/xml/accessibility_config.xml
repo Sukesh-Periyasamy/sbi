@@ -2,17 +2,21 @@
 <!--
     AccessibilityService config for TrustShield.
 
-    Why event-driven:
-    - TYPE_WINDOW_STATE_CHANGED fires when a new browser tab/page becomes active.
-    - TYPE_WINDOW_CONTENT_CHANGED fires when the address bar or page content updates.
-    Together they cover every URL navigation without polling, keeping battery impact minimal.
+    WHY no packageNames filter here:
+    Android's XML packageNames filter is applied at the system level before events
+    reach the service. For standalone browsers this works fine, but in-app browsers
+    and embedded WebViews (Telegram, WhatsApp, Instagram) run inside the host app's
+    process — their events carry the host package name, not a browser package name.
+    Restricting packageNames in XML would silently drop all those events.
+    Package filtering is therefore done in Kotlin where it is reliable and auditable.
 
-    Package filters restrict event delivery to known browser processes only,
-    so TrustShield never receives events from unrelated apps.
+    WHY both event types:
+    - TYPE_WINDOW_STATE_CHANGED  fires when a new in-app browser tab/page becomes active.
+    - TYPE_WINDOW_CONTENT_CHANGED fires when the address bar or WebView content updates.
+    Together they cover every navigation decision point without polling.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
     android:accessibilityFlags="flagReportViewIds"
     android:canRetrieveWindowContent="true"
-    android:packageNames="com.android.chrome,org.mozilla.firefox,com.sec.android.app.sbrowser"
     android:description="@string/accessibility_service_description" />

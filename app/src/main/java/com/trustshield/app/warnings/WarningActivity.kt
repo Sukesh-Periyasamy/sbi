@@ -1,14 +1,23 @@
 package com.trustshield.app.warnings
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -59,18 +68,29 @@ import com.trustshield.app.ui.theme.TrustShieldType
 class WarningActivity : ComponentActivity() {
 
     companion object {
+        private const val TAG              = "TrustShield"
         private const val EXTRA_URL        = "extra_url"
         private const val EXTRA_SCORE      = "extra_score"
         private const val EXTRA_VERDICT    = "extra_verdict"
         private const val EXTRA_REASONS    = "extra_reasons"
         private const val EXTRA_SOURCE     = "extra_source"
         private const val EXTRA_CONFIDENCE = "extra_confidence"
+        private const val NOTIF_CHANNEL_ID = "trustshield_phishing_alerts"
+        private const val NOTIF_ID         = 1001
 
+        /**
+         * Primary launch path — called from GatewayActivity and
+         * TrustShieldAccessibilityService.
+         *
+         * FLAG_ACTIVITY_NEW_TASK   — mandatory when context is not an Activity
+         * FLAG_ACTIVITY_CLEAR_TOP  — bring existing instance to front with new intent
+         * FLAG_ACTIVITY_SINGLE_TOP — reuse top instance via onNewIntent, no duplicate
+         */
         fun launch(
             context: Context,
-            warning: ThreatWarning,
-            fromService: Boolean = false
+            warning: ThreatWarning
         ) {
+            Log.d(TAG, "Attempting to launch WarningActivity — url=${warning.url} source=${warning.source}")
             val intent = Intent(context, WarningActivity::class.java).apply {
                 putExtra(EXTRA_URL,        warning.url)
                 putExtra(EXTRA_SCORE,      warning.score)
@@ -78,14 +98,95 @@ class WarningActivity : ComponentActivity() {
                 putStringArrayListExtra(EXTRA_REASONS, ArrayList(warning.reasons))
                 putExtra(EXTRA_SOURCE,     warning.source.name)
                 putExtra(EXTRA_CONFIDENCE, warning.confidence)
-                if (fromService) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK    or
+                    Intent.FLAG_ACTIVITY_CLEAR_TASK  or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP   or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             }
-            context.startActivity(intent)
+            try {
+                context.startActivity(intent)
+                Log.d(TAG, "WarningActivity launch intent sent")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to launch WarningActivity — falling back to notification", e)
+                showFallbackNotification(context, warning)
+            }
+        }
+
+        /**
+         * Fallback for MIUI/Poco devices that block background Activity launches.
+         * Shows a high-priority notification that opens WarningActivity when tapped.
+         */
+        private fun showFallbackNotification(context: Context, warning: ThreatWarning) {
+            ensureNotificationChannel(context)
+            val tapIntent = Intent(context, WarningActivity::class.java).apply {
+                putExtra(EXTRA_URL,        warning.url)
+                putExtra(EXTRA_SCORE,      warning.score)
+                putExtra(EXTRA_VERDICT,    warning.verdict)
+                putStringArrayListExtra(EXTRA_REASONS, ArrayList(warning.reasons))
+                putExtra(EXTRA_SOURCE,     warning.source.name)
+                putExtra(EXTRA_CONFIDENCE, warning.confidence)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                context, NOTIF_ID, tapIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification = NotificationCompat.Builder(context, NOTIF_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("\u26a0 Banking Phishing Warning")
+                .setContentText("Suspicious banking site detected: ${warning.url}")
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("Suspicious banking site detected:\n${warning.url}\n\nTap to view full details.")
+                )
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+            try {
+                NotificationManagerCompat.from(context).notify(NOTIF_ID, notification)
+                Log.d(TAG, "Fallback notification shown for: ${warning.url}")
+            } catch (e: SecurityException) {
+                // POST_NOTIFICATIONS not granted on Android 13+ — log and move on
+                Log.e(TAG, "Notification permission not granted", e)
+            }
+        }
+
+        private fun ensureNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (nm.getNotificationChannel(NOTIF_CHANNEL_ID) != null) return
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    NOTIF_CHANNEL_ID,
+                    "Phishing Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "TrustShield phishing detection alerts"
+                    enableVibration(true)
+                }
+            )
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // ── MIUI / Poco / lock-screen compatibility ───────────────────────────
+        // Ensures WarningActivity appears even when the device is locked or the
+        // screen is off — required on Xiaomi/Poco with MIUI background restrictions.
+        @Suppress("DEPRECATION")
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON   or
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
+        // Modern API (Android 8.1+) — works alongside the deprecated flags above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
         super.onCreate(savedInstanceState)
         val url        = intent.getStringExtra(EXTRA_URL)     ?: ""
         val score      = intent.getIntExtra(EXTRA_SCORE, 0)
@@ -478,7 +579,7 @@ private fun ActionButtons(onClose: () -> Unit, onContinue: () -> Unit) {
                 .fillMaxWidth()
                 .height(52.dp),
             shape  = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(
+            border = BorderStroke(
                 1.dp, TrustShieldColors.SecondaryText.copy(alpha = 0.5f)
             )
         ) {

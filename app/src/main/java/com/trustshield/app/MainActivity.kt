@@ -1,5 +1,6 @@
 package com.trustshield.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,6 +43,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.trustshield.app.permission.PermissionSetupActivity
+import com.trustshield.app.permission.allPermissionsGranted
 import com.trustshield.app.ui.theme.TrustShieldColors
 import com.trustshield.app.ui.theme.TrustShieldTheme
 import com.trustshield.app.ui.theme.TrustShieldType
@@ -49,6 +52,15 @@ import com.trustshield.app.ui.theme.TrustShieldType
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Route to setup screen if any required permission is missing.
+        // On return from PermissionSetupActivity the user lands here directly.
+        if (!allPermissionsGranted(this)) {
+            startActivity(
+                Intent(this, PermissionSetupActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
+            return
+        }
         setContent {
             TrustShieldTheme {
                 Surface(
