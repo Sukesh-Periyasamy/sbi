@@ -100,7 +100,8 @@ class TrustShieldVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Dedup: domain → last warned timestamp (shared by DNS + SNI paths)
+    // Tracks how many times the packet loop has been restarted this session
+    private var packetLoopRestarts = 0    // Dedup: domain → last warned timestamp (shared by DNS + SNI paths)
     private val recentDomainCache = mutableMapOf<String, Long>()
 
     // Warn-once guards
@@ -127,24 +128,26 @@ class TrustShieldVpnService : VpnService() {
             }
             else -> startVpn()
         }
-        return START_STICKY   // restart on MIUI/HyperOS aggressive kill
+        return START_STICKY
     }
 
     override fun onRevoke() {
-        // Called by Android when the user disables the VPN from system settings
         Log.d(TAG, "VPN revoked by system")
+        VpnStateManager.markStopped()
+        VpnWatchdog.stop()
         stopVpn()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        VpnStateManager.markStopped()
         stopVpn()
     }
 
     // ── VPN setup ─────────────────────────────────────────────────────────────
 
     private fun startVpn() {
-        if (vpnInterface != null) return   // already running
+        if (vpnInterface != null) return
 
         ensureNotificationChannel()
         startForeground(NOTIF_ID, buildNotification())
@@ -152,26 +155,31 @@ class TrustShieldVpnService : VpnService() {
         try {
             vpnInterface = Builder()
                 .setSession("TrustShield")
-                .addAddress("10.0.0.2", 32)          // virtual IP for this device
-                .addRoute("0.0.0.0", 0)              // route all traffic through TUN
+                .addAddress("10.0.0.2", 32)
+                .addRoute("0.0.0.0", 0)
                 .addDnsServer(UPSTREAM_DNS)
                 .setMtu(1500)
                 .establish()
 
+            VpnStateManager.markStarted()
+            VpnWatchdog.onConnected()
+            VpnWatchdog.start(this)
             Log.d(TAG, "VPN interface established")
-            serviceScope.launch { runPacketLoop() }
+            serviceScope.launch { runPacketLoopWithRecovery() }
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to establish VPN interface", e)
+            VpnStateManager.markStopped()
             stopSelf()
         }
     }
 
     private fun stopVpn() {
+        VpnStateManager.markStopped()
         serviceScope.cancel()
         try { vpnInterface?.close() } catch (_: Exception) {}
         vpnInterface = null
-        tcpStreamBuffers.clear()   // release stream reassembly memory
+        tcpStreamBuffers.clear()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d(TAG, "VPN stopped")
@@ -189,6 +197,41 @@ class TrustShieldVpnService : VpnService() {
      *
      * Non-DNS packets are forwarded transparently without inspection.
      */
+    /**
+     * Wraps runPacketLoop() with self-recovery.
+     * If the packet loop exits unexpectedly (TUN fd closed by MIUI, network
+     * switch, etc.) we attempt to re-establish the VPN interface and restart
+     * the loop up to MAX_LOOP_RESTARTS times before giving up.
+     */
+    private suspend fun runPacketLoopWithRecovery() {
+        val MAX_LOOP_RESTARTS = 5
+        while (serviceScope.isActive && packetLoopRestarts <= MAX_LOOP_RESTARTS) {
+            runPacketLoop()
+            if (!serviceScope.isActive) break
+            packetLoopRestarts++
+            Log.w(TAG, "Packet loop exited unexpectedly — restart $packetLoopRestarts/$MAX_LOOP_RESTARTS")
+            // Re-establish TUN interface
+            try {
+                vpnInterface?.close()
+            } catch (_: Exception) {}
+            vpnInterface = Builder()
+                .setSession("TrustShield")
+                .addAddress("10.0.0.2", 32)
+                .addRoute("0.0.0.0", 0)
+                .addDnsServer(UPSTREAM_DNS)
+                .setMtu(1500)
+                .establish()
+            if (vpnInterface == null) {
+                Log.e(TAG, "Could not re-establish TUN — stopping")
+                VpnStateManager.markStopped()
+                stopSelf()
+                break
+            }
+            VpnStateManager.markStarted()
+            updateNotification()
+        }
+    }
+
     private suspend fun runPacketLoop() = withContext(Dispatchers.IO) {
         val tun = vpnInterface ?: return@withContext
         val input  = FileInputStream(tun.fileDescriptor)
@@ -203,6 +246,9 @@ class TrustShieldVpnService : VpnService() {
                 if (len <= 0) continue
 
                 val packet = buffer.copyOf(len)
+
+                // Heartbeat — lets VpnWatchdog know the loop is alive
+                VpnStateManager.beat()
 
                 // ── DNS interception (UDP port 53) ────────────────────────────
                 val domain = tryExtractDnsDomain(packet, len)
@@ -499,19 +545,28 @@ class TrustShieldVpnService : VpnService() {
 
     // ── Notification ──────────────────────────────────────────────────────────
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(): Notification = buildNotification(packetLoopRestarts)
+
+    private fun buildNotification(restarts: Int): Notification {
         val tapIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val subtitle = if (restarts == 0) "Network phishing detection is running"
+                       else "Running (recovered $restarts time${if (restarts > 1) "s" else ""})"
         return Notification.Builder(this, NOTIF_CHANNEL)
             .setContentTitle("TrustShield Protection Active")
-            .setContentText("Network phishing detection is running")
+            .setContentText(subtitle)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setContentIntent(tapIntent)
             .setOngoing(true)
             .build()
+    }
+
+    private fun updateNotification() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIF_ID, buildNotification(packetLoopRestarts))
     }
 
     private fun ensureNotificationChannel() {
