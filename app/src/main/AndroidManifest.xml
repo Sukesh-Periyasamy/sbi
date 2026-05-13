@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -46,7 +48,19 @@
             android:excludeFromRecents="true" />
 
         <service
-            android:name=".service.TrustShieldAccessibilityService"
+            android:name=".vpn.TrustShieldVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
+                android:value="true" />
+        </service>
+
+        <service
             android:exported="true"
             android:label="TrustShield"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

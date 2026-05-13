@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -16,6 +17,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -69,6 +71,8 @@ import com.trustshield.app.ui.theme.TrustShieldColors
 import com.trustshield.app.ui.theme.TrustShieldTheme
 import com.trustshield.app.ui.theme.TrustShieldType
 import kotlinx.coroutines.launch
+
+import com.trustshield.app.vpn.TrustShieldVpnService
 
 private const val TAG      = "TrustShield"
 private const val PREFS    = "trustshield_prefs"
@@ -164,10 +168,14 @@ fun isBatteryOptimizationDisabled(context: Context): Boolean {
     return pm.isIgnoringBatteryOptimizations(context.packageName)
 }
 
+fun isVpnPermissionGranted(context: Context): Boolean =
+    VpnService.prepare(context) == null   // null means already granted
+
 fun allPermissionsGranted(context: Context): Boolean =
     isAccessibilityEnabled(context) &&
     isOverlayPermissionGranted(context) &&
-    isBatteryOptimizationDisabled(context)
+    isBatteryOptimizationDisabled(context) &&
+    isVpnPermissionGranted(context)
 
 /**
  * Opens the correct overlay permission screen with a three-level fallback.
@@ -213,11 +221,23 @@ fun openOverlaySettings(context: Context) {
 
 class PermissionSetupActivity : ComponentActivity() {
 
-    // Permission states hoisted to Activity scope so onResume() can update them
-    // directly — Compose observes these and recomposes only the affected subtrees.
     private var accessibilityEnabled = mutableStateOf(false)
     private var overlayEnabled       = mutableStateOf(false)
     private var batteryEnabled       = mutableStateOf(false)
+    private var vpnEnabled           = mutableStateOf(false)
+
+    // Launcher for VpnService.prepare() — system shows a one-time consent dialog
+    private val vpnLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            vpnEnabled.value = true
+            TrustShieldVpnService.start(this)
+            Log.d(TAG, "VPN permission granted — service started")
+        } else {
+            Log.d(TAG, "VPN permission denied by user")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -227,7 +247,9 @@ class PermissionSetupActivity : ComponentActivity() {
                 accessibilityEnabled = accessibilityEnabled.value,
                 overlayEnabled       = overlayEnabled.value,
                 batteryEnabled       = batteryEnabled.value,
-                isMiui               = isMiuiDevice()
+                vpnEnabled           = vpnEnabled.value,
+                isMiui               = isMiuiDevice(),
+                onRequestVpn         = { requestVpnPermission() }
             )
         }
     }
@@ -235,24 +257,32 @@ class PermissionSetupActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshPermissionStates()
-
-        // MIUI sometimes delays propagation of the overlay permission grant by
-        // several hundred milliseconds after the user returns from Settings.
-        // Re-check after 500 ms to catch the delayed state update.
         Handler(Looper.getMainLooper()).postDelayed({
             overlayEnabled.value = isOverlayPermissionGranted(this)
             Log.d(TAG, "Overlay (delayed recheck)=${overlayEnabled.value}")
         }, 500)
     }
 
+    private fun requestVpnPermission() {
+        val intent = VpnService.prepare(this)
+        if (intent == null) {
+            vpnEnabled.value = true
+            TrustShieldVpnService.start(this)
+        } else {
+            vpnLauncher.launch(intent)
+        }
+    }
+
     private fun refreshPermissionStates() {
         accessibilityEnabled.value = isAccessibilityEnabled(this)
         overlayEnabled.value       = isOverlayPermissionGranted(this)
         batteryEnabled.value       = isBatteryOptimizationDisabled(this)
+        vpnEnabled.value           = isVpnPermissionGranted(this)
 
         Log.d(TAG, "Accessibility=${accessibilityEnabled.value}")
         Log.d(TAG, "Overlay=${overlayEnabled.value}")
         Log.d(TAG, "Battery=${batteryEnabled.value}")
+        Log.d(TAG, "VPN=${vpnEnabled.value}")
     }
 }
 
@@ -280,12 +310,14 @@ fun PermissionSetupScreen(
     accessibilityEnabled: Boolean,
     overlayEnabled: Boolean,
     batteryEnabled: Boolean,
-    isMiui: Boolean = false
+    vpnEnabled: Boolean = false,
+    isMiui: Boolean = false,
+    onRequestVpn: () -> Unit = {}
 ) {
     val context       = androidx.compose.ui.platform.LocalContext.current
     val snackbarState = remember { SnackbarHostState() }
     val scope         = rememberCoroutineScope()
-    val allGranted    = accessibilityEnabled && overlayEnabled && batteryEnabled
+    val allGranted    = accessibilityEnabled && overlayEnabled && batteryEnabled && vpnEnabled
 
     TrustShieldTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = TrustShieldColors.Background) {
@@ -356,6 +388,18 @@ fun PermissionSetupScreen(
                                         )
                                     }
                                 }
+                            )
+                        }
+
+                        AnimatedEntry(delayMs = 300) {
+                            PermissionCard(
+                                icon        = "🌐",
+                                title       = "Network Protection (VPN)",
+                                description = "Intercepts DNS queries to detect phishing domains from Telegram, Instagram, and hidden browsers.",
+                                statusLabel = if (vpnEnabled) "ACTIVE" else "INACTIVE",
+                                isGranted   = vpnEnabled,
+                                buttonLabel = "Enable Network Protection",
+                                onAction    = onRequestVpn
                             )
                         }
 
