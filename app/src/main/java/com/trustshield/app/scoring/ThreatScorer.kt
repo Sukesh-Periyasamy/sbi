@@ -1,50 +1,42 @@
 package com.trustshield.app.scoring
 
-// ─── Expected scores after rewrite ───────────────────────────────────────────
-// HIGH_RISK: https://sbi-secure-login.xyz        → banking kw + suspicious TLD + typo + hyphens + escalation → 130
-// HIGH_RISK: https://verify-hdfc-account.top     → banking kw + suspicious TLD + typo + hyphens + escalation → 130
-// HIGH_RISK: https://bit.ly/sbi-update           → shortener + banking kw + typo                             →  90
-// HIGH_RISK: http://192.168.1.10/login           → raw IP + banking kw                                       →  80
-// WARNING:   https://secure-paytm-login.com      → banking kw + typo + hyphens                               →  55
-// WARNING:   https://upi-verification.net        → banking kw + hyphens                                      →  40
-// SAFE:      https://www.amazon.in               → no signals                                                 →   0
-// SAFE:      https://m.youtube.com               → no signals                                                 →   0
-// SAFE:      https://en.wikipedia.org            → no signals                                                 →   0
+import java.net.IDN
+import java.text.Normalizer
+import kotlin.math.ln
+
+// ─── Expected scores ──────────────────────────────────────────────────────────
+// HIGH_RISK: https://sbi-secure-login.xyz      → kw+TLD+escalation+typo+hyphens     → 125
+// HIGH_RISK: https://verify-hdfc-account.top   → kw+TLD+escalation+typo+hyphens     → 125
+// HIGH_RISK: https://bit.ly/sbi-update         → shortener+kw+typo+shortener-fin    → 110
+// HIGH_RISK: http://192.168.1.10/login         → raw-IP+kw+typo                     →  90
+// HIGH_RISK: https://xn--sbi-pqa.com           → punycode+kw+typo                   →  85
+// HIGH_RISK: https://sbí-login.com             → homograph+kw+typo                  →  95
+// HIGH_RISK: https://paytm-secure-login.xyz    → kw+TLD+escalation+typo+hyphens     → 125
+// WARNING:   https://secure-paytm-login.com    → kw+typo+hyphens                    →  65
+// WARNING:   https://upi-verification.net      → kw+hyphens+levenshtein             →  55
+// SAFE:      https://www.amazon.in             → no signals                         →   0
+// SAFE:      https://m.youtube.com             → no signals                         →   0
 // ─────────────────────────────────────────────────────────────────────────────
 
 object ThreatScorer {
 
-    // ── Weights ───────────────────────────────────────────────────────────────
-    private const val W_BANKING_KEYWORD  = 20   // known bank/payment brand in URL
-    private const val W_SUSPICIOUS_TLD   = 30   // untrusted TLD
-    private const val W_APK_INDICATOR    = 50   // .apk download
-    private const val W_URL_SHORTENER    = 30   // redirect service hides real destination
-    private const val W_RAW_IP           = 40   // IP instead of domain
-    private const val W_TYPO_DOMAIN      = 30   // banking keyword but NOT a known legit domain
-    private const val W_HYPHEN_PATTERN   = 15   // multiple hyphens = phishing structure signal
-    private const val W_LONG_URL         = 10   // unusually long URL
-    private const val W_ESCALATION       = 30   // banking keyword AND suspicious TLD together
-
     // ── Signal data ───────────────────────────────────────────────────────────
 
-    // Banking / payment brand keywords — any of these in a URL raises suspicion
     val bankingKeywords = listOf(
         "sbi", "hdfc", "icici", "axis", "kotak",
         "paytm", "upi", "yono", "netbanking",
         "login", "secure", "verify", "update-kyc"
     )
 
-    // TLDs commonly abused in phishing campaigns
     private val suspiciousTlds = listOf(
-        ".xyz", ".top", ".click", ".shop", ".live", ".buzz", ".ru"
+        ".xyz", ".top", ".click", ".shop", ".live", ".buzz", ".ru", ".tk", ".ml", ".ga"
     )
 
-    // URL shorteners — hide the real destination domain
     private val shortenerHosts = listOf(
-        "bit.ly", "tinyurl.com", "t.co", "rb.gy", "cutt.ly", "goo.gl", "ow.ly"
+        "bit.ly", "tinyurl.com", "t.co", "rb.gy", "cutt.ly", "goo.gl", "ow.ly",
+        "is.gd", "buff.ly", "short.io"
     )
 
-    // Known legitimate bank domains — used to avoid false-positives on typo check
     private val legitimateBankDomains = listOf(
         "onlinesbi.sbi", "sbi.co.in", "sbionline.com",
         "hdfcbank.com", "icicibank.com", "axisbank.com",
@@ -52,77 +44,111 @@ object ThreatScorer {
         "yono.sbi.co.in", "netbanking.hdfcbank.com"
     )
 
+    // Canonical ASCII forms of bank brand names used for Levenshtein comparison
+    private val bankBrandNames = listOf(
+        "sbi", "hdfc", "icici", "axis", "kotak", "paytm", "yono"
+    )
+
+    // Unicode homograph map: lookalike → ASCII equivalent
+    // Covers Cyrillic, Greek, and Latin lookalikes commonly used in IDN attacks
+    private val homographMap = mapOf(
+        'а' to 'a', 'е' to 'e', 'о' to 'o', 'р' to 'p', 'с' to 'c',
+        'х' to 'x', 'у' to 'y', 'і' to 'i', 'ї' to 'i', 'ο' to 'o',
+        'α' to 'a', 'ν' to 'n', 'ρ' to 'p', 'ε' to 'e', 'ί' to 'i',
+        'ó' to 'o', 'ú' to 'u', 'á' to 'a', 'é' to 'e', 'í' to 'i',
+        'ñ' to 'n', 'ç' to 'c', 'ß' to 's'
+    )
+
     private val ipPattern   = Regex("""^(\d{1,3}\.){3}\d{1,3}$""")
     private val hyphenRegex = Regex("""-""")
+    private val punycodeRx  = Regex("""xn--""", RegexOption.IGNORE_CASE)
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     fun score(url: String): ThreatResult {
-        val lower   = url.lowercase().trim()
+        val raw     = url.trim()
+        val lower   = raw.lowercase()
         val host    = extractHost(lower)
+        val regHost = host ?: ""
+
+        // Normalise the host to ASCII for homograph / Levenshtein checks
+        val asciiHost = normaliseToAscii(regHost)
+
+        val fired   = mutableListOf<ThreatSignal>()
         var total   = 0
-        val reasons = mutableListOf<String>()
 
-        val hasBankKeyword    = containsBankKeyword(lower)
-        val hasSuspiciousTld  = isSuspiciousTld(lower)
-
-        // A. Banking keyword (+20)
-        if (hasBankKeyword) {
-            total += W_BANKING_KEYWORD
-            reasons += "Suspicious banking keyword"
+        fun fire(signal: ThreatSignal) {
+            fired += signal
+            total += signal.weight
         }
 
-        // B. Suspicious TLD (+30)
-        if (hasSuspiciousTld) {
-            total += W_SUSPICIOUS_TLD
-            reasons += "Untrusted top-level domain"
-        }
+        // ── A. Banking keyword ────────────────────────────────────────────────
+        val hasBankKeyword   = containsBankKeyword(lower)
+        val hasSuspiciousTld = isSuspiciousTld(lower)
 
-        // C. Escalation: banking keyword AND suspicious TLD together (+30 bonus)
-        // e.g. sbi-login.xyz — this combination is almost always phishing
-        if (hasBankKeyword && hasSuspiciousTld) {
-            total += W_ESCALATION
-            reasons += "Banking brand on untrusted domain"
-        }
+        if (hasBankKeyword)   fire(ThreatSignal.BANKING_KEYWORD)
 
-        // D. APK indicator (+50)
-        if (containsApk(lower)) {
-            total += W_APK_INDICATOR
-            reasons += "APK payload detected"
-        }
+        // ── B. Suspicious TLD ─────────────────────────────────────────────────
+        if (hasSuspiciousTld) fire(ThreatSignal.SUSPICIOUS_TLD)
 
-        // E. URL shortener (+30)
-        if (isShortener(host)) {
-            total += W_URL_SHORTENER
-            reasons += "URL shortener detected"
-        }
+        // ── C. Escalation: banking keyword + suspicious TLD ───────────────────
+        if (hasBankKeyword && hasSuspiciousTld) fire(ThreatSignal.TLD_ESCALATION)
 
-        // F. Raw IP address (+40)
-        if (isRawIp(host)) {
-            total += W_RAW_IP
-            reasons += "Raw IP address used"
-        }
+        // ── D. APK indicator ──────────────────────────────────────────────────
+        if (containsApk(lower)) fire(ThreatSignal.APK_INDICATOR)
 
-        // G. Typo / clone domain (+30)
-        // Banking keyword present but host is NOT a known legitimate bank domain
-        if (isTypoDomain(lower, host)) {
-            total += W_TYPO_DOMAIN
-            reasons += "Possible phishing structure"
-        }
+        // ── E. URL shortener ──────────────────────────────────────────────────
+        val isShort = isShortener(host)
+        if (isShort) fire(ThreatSignal.URL_SHORTENER)
 
-        // H. Hyphen pattern (+15)
-        // Phishing domains like sbi-secure-login.xyz use multiple hyphens
-        if (hasExcessiveHyphens(host)) {
-            total += W_HYPHEN_PATTERN
-            reasons += "Hyphenated phishing pattern"
-        }
+        // ── F. Raw IP address ─────────────────────────────────────────────────
+        if (isRawIp(host)) fire(ThreatSignal.RAW_IP_ADDRESS)
 
-        // I. Long URL (+10)
-        // Legitimate banks use short clean URLs; long URLs hide malicious paths
-        if (lower.length > 80) {
-            total += W_LONG_URL
-            reasons += "Unusually long URL"
-        }
+        // ── G. Typo / clone domain ────────────────────────────────────────────
+        if (isTypoDomain(lower, host)) fire(ThreatSignal.TYPO_DOMAIN)
+
+        // ── H. Hyphen pattern ─────────────────────────────────────────────────
+        if (hasExcessiveHyphens(host)) fire(ThreatSignal.HYPHEN_PATTERN)
+
+        // ── I. Long URL ───────────────────────────────────────────────────────
+        if (lower.length > 80) fire(ThreatSignal.LONG_URL)
+
+        // ── J. High entropy ───────────────────────────────────────────────────
+        // Phishing domains often use randomly generated hostnames (e.g. a3f9k2.xyz).
+        // Shannon entropy > 3.8 bits/char on the registered domain label is suspicious.
+        if (isHighEntropy(registeredDomainLabel(regHost))) fire(ThreatSignal.HIGH_ENTROPY)
+
+        // ── K. Punycode / IDN domain ──────────────────────────────────────────
+        // xn-- prefix signals an Internationalised Domain Name.
+        // Attackers use IDN to register lookalike domains (e.g. xn--paytm-abc.com).
+        if (isPunycode(regHost)) fire(ThreatSignal.PUNYCODE_DOMAIN)
+
+        // ── L. Homograph attack ───────────────────────────────────────────────
+        // Detects Unicode lookalike characters in the original (non-lowercased) host.
+        // e.g. sbí-login.com — the í (U+00ED) looks identical to i in most fonts.
+        if (isHomographAttack(raw)) fire(ThreatSignal.HOMOGRAPH_ATTACK)
+
+        // ── M. Levenshtein similarity ─────────────────────────────────────────
+        // Checks if the ASCII-normalised registered domain label is within edit
+        // distance 2 of a known bank brand name but is NOT that brand name exactly.
+        // e.g. "sbii", "hdfcc", "paytnn" — close enough to fool users.
+        if (isLevenshteinSimilar(asciiHost)) fire(ThreatSignal.LEVENSHTEIN_SIMILAR)
+
+        // ── N. Suspicious subdomain depth ────────────────────────────────────
+        // Legitimate banks use at most 2 labels (www.hdfcbank.com).
+        // Phishing sites use deep subdomains to bury the real domain:
+        // secure.login.sbi.fake-domain.xyz → 5 labels
+        if (hasDeepSubdomains(regHost)) fire(ThreatSignal.DEEP_SUBDOMAIN)
+
+        // ── O. Mixed Unicode scripts ──────────────────────────────────────────
+        // A domain mixing Latin + Cyrillic + Greek characters is almost always
+        // a homograph attack even if no individual character maps are found.
+        if (hasMixedScripts(raw)) fire(ThreatSignal.MIXED_SCRIPT)
+
+        // ── P. Shortener with financial keyword in path ───────────────────────
+        // bit.ly/sbi-update — the shortener hides the real destination but the
+        // path itself leaks the phishing intent.
+        if (isShort && hasBankKeyword) fire(ThreatSignal.SHORTENER_FINANCIAL)
 
         val verdict = when {
             total >= 70 -> ThreatVerdict.HIGH_RISK
@@ -130,54 +156,168 @@ object ThreatScorer {
             else        -> ThreatVerdict.SAFE
         }
 
-        return ThreatResult(score = total, verdict = verdict, reasons = reasons)
+        return ThreatResult(
+            score   = total,
+            verdict = verdict,
+            reasons = fired.map { it.label },
+            signals = fired
+        )
     }
 
-    // ── Named helper checks ───────────────────────────────────────────────────
+    // ── Existing public helpers (API unchanged) ───────────────────────────────
 
-    /** True if the URL contains a known banking or payment brand keyword. */
     fun containsBankKeyword(url: String): Boolean =
         bankingKeywords.any { url.contains(it) }
 
-    /** True if the URL contains a known suspicious TLD. */
     fun isSuspiciousTld(url: String): Boolean =
         suspiciousTlds.any { url.contains(it) }
 
-    /** True if the URL points to an APK file download. */
-    fun containsApk(url: String): Boolean =
-        url.contains(".apk")
+    fun containsApk(url: String): Boolean = url.contains(".apk")
 
-    /** True if the host belongs to a known URL shortener service. */
     fun isShortener(host: String?): Boolean =
         host != null && shortenerHosts.any { host == it || host.endsWith(".$it") }
 
-    /** True if the host is a raw IPv4 address instead of a domain name. */
     fun isRawIp(host: String?): Boolean =
         host != null && ipPattern.matches(host)
 
-    /**
-     * True if the URL contains a banking keyword but the host does NOT match
-     * any known legitimate bank domain — strong signal of a typo/clone domain.
-     */
     fun isTypoDomain(url: String, host: String?): Boolean {
         if (host == null) return false
         if (!containsBankKeyword(url)) return false
         return legitimateBankDomains.none { host.endsWith(it) }
     }
 
-    /**
-     * True if the host contains 2 or more hyphens.
-     * Legitimate bank domains rarely use hyphens; phishing domains like
-     * sbi-secure-login.xyz use them to mimic legitimate-looking paths.
-     */
     fun hasExcessiveHyphens(host: String?): Boolean {
         if (host == null) return false
         return hyphenRegex.findAll(host).count() >= 2
     }
 
+    // ── New public helpers ────────────────────────────────────────────────────
+
+    /**
+     * Shannon entropy of a string in bits per character.
+     * H = -Σ p(c) * log2(p(c))
+     *
+     * Legitimate bank domain labels (e.g. "hdfcbank") score ~2.8.
+     * Random-looking labels (e.g. "a3f9k2xq") score > 3.8.
+     * Threshold 3.8 chosen empirically to minimise false positives.
+     */
+    fun shannonEntropy(s: String): Double {
+        if (s.length < 4) return 0.0
+        val freq = s.groupingBy { it }.eachCount()
+        val len  = s.length.toDouble()
+        return -freq.values.sumOf { count ->
+            val p = count / len
+            p * (ln(p) / ln(2.0))
+        }
+    }
+
+    fun isHighEntropy(label: String): Boolean =
+        label.length >= 6 && shannonEntropy(label) > 3.8
+
+    /**
+     * True if the host contains a punycode label (xn-- prefix).
+     * Legitimate banks never use IDN domains for their primary banking portals.
+     */
+    fun isPunycode(host: String): Boolean =
+        punycodeRx.containsMatchIn(host)
+
+    /**
+     * True if the original URL contains Unicode characters that map to ASCII
+     * lookalikes via the homograph map.
+     * e.g. sbí-login.com → the í maps to i → decoded as sbi-login.com
+     */
+    fun isHomographAttack(url: String): Boolean {
+        val host = extractHost(url.lowercase()) ?: return false
+        return host.any { it in homographMap }
+    }
+
+    /**
+     * Normalises a host by replacing homograph characters with their ASCII
+     * equivalents, then strips accents via Unicode NFD decomposition.
+     * Used before Levenshtein comparison so sbí → sbi.
+     */
+    fun normaliseToAscii(host: String): String {
+        // Step 1: replace known homograph characters
+        val mapped = host.map { homographMap[it] ?: it }.joinToString("")
+        // Step 2: NFD decomposition + strip combining diacritical marks (U+0300–U+036F)
+        val nfd = Normalizer.normalize(mapped, Normalizer.Form.NFD)
+        return nfd.replace(Regex("\\p{InCombiningDiacriticalMarks}"), "")
+    }
+
+    /**
+     * Levenshtein edit distance between two strings.
+     * Standard DP implementation — O(m×n) time, O(n) space.
+     * Inputs are expected to be short domain labels (< 20 chars) so this is fast.
+     */
+    fun levenshtein(a: String, b: String): Int {
+        if (a == b) return 0
+        if (a.isEmpty()) return b.length
+        if (b.isEmpty()) return a.length
+        val prev = IntArray(b.length + 1) { it }
+        val curr = IntArray(b.length + 1)
+        for (i in 1..a.length) {
+            curr[0] = i
+            for (j in 1..b.length) {
+                curr[j] = if (a[i - 1] == b[j - 1]) prev[j - 1]
+                           else 1 + minOf(prev[j], curr[j - 1], prev[j - 1])
+            }
+            prev.indices.forEach { prev[it] = curr[it] }
+        }
+        return curr[b.length]
+    }
+
+    /**
+     * True if the ASCII-normalised registered domain label is within edit
+     * distance 1–2 of a known bank brand name but is NOT that brand name.
+     * Distance 1 catches single-char insertions/deletions (sbii, hdfcc).
+     * Distance 2 catches transpositions and substitutions (paytnn, icicii).
+     */
+    fun isLevenshteinSimilar(asciiHost: String): Boolean {
+        val label = registeredDomainLabel(asciiHost)
+        if (label.length < 3) return false
+        return bankBrandNames.any { brand ->
+            val dist = levenshtein(label, brand)
+            dist in 1..2 && label != brand
+        }
+    }
+
+    /**
+     * True if the host has 4 or more dot-separated labels.
+     * Legitimate banks: www.hdfcbank.com (3 labels).
+     * Phishing: secure.login.sbi.fake.xyz (5 labels).
+     */
+    fun hasDeepSubdomains(host: String): Boolean =
+        host.isNotBlank() && host.split('.').size >= 4
+
+    /**
+     * True if the host contains characters from more than one Unicode script
+     * (e.g. Latin + Cyrillic). Mixed-script domains are almost always homograph
+     * attacks and are blocked by most modern browsers — but not all.
+     */
+    fun hasMixedScripts(url: String): Boolean {
+        val host = extractHost(url.lowercase()) ?: return false
+        val scripts = host.filter { it.isLetter() }
+                          .map { Character.UnicodeScript.of(it.code) }
+                          .toSet()
+        // Allow COMMON (digits, hyphens) + exactly one letter script
+        val letterScripts = scripts.filter { it != Character.UnicodeScript.COMMON &&
+                                             it != Character.UnicodeScript.INHERITED }
+        return letterScripts.size > 1
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    private fun extractHost(url: String): String? = try {
+    /**
+     * Extracts the registered domain label (second-to-last label before TLD).
+     * "secure.login.hdfcbank.com" → "hdfcbank"
+     * "sbi-login.xyz"             → "sbi-login"
+     */
+    private fun registeredDomainLabel(host: String): String {
+        val labels = host.split('.')
+        return if (labels.size >= 2) labels[labels.size - 2] else host
+    }
+
+    fun extractHost(url: String): String? = try {
         val withScheme = if (!url.contains("://")) "https://$url" else url
         java.net.URI(withScheme).host
     } catch (e: Exception) {
