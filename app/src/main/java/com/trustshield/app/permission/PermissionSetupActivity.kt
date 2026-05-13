@@ -1,5 +1,6 @@
 package com.trustshield.app.permission
 
+import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -90,8 +91,26 @@ fun isAccessibilityEnabled(context: Context): Boolean {
     return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
 }
 
-fun isOverlayPermissionGranted(context: Context): Boolean =
-    Settings.canDrawOverlays(context)
+fun isOverlayPermissionGranted(context: Context): Boolean {
+    // Standard Android check — works on stock Android, Samsung, OnePlus
+    if (Settings.canDrawOverlays(context)) return true
+
+    // MIUI fallback — Xiaomi/Poco grant popup permission internally but do NOT
+    // update the standard overlay API, so Settings.canDrawOverlays() returns
+    // false even when the permission is actually granted. AppOpsManager reads
+    // the real underlying permission state directly.
+    return try {
+        val ops  = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = ops.checkOpNoThrow(
+            "android:system_alert_window",
+            android.os.Process.myUid(),
+            context.packageName
+        )
+        mode == AppOpsManager.MODE_ALLOWED
+    } catch (e: Exception) {
+        false
+    }
+}
 
 fun isBatteryOptimizationDisabled(context: Context): Boolean {
     val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
