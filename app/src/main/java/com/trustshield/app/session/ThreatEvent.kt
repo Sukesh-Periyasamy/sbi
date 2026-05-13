@@ -28,7 +28,8 @@ sealed class ThreatEvent {
         val url:        String,
         val sourceApp:  String,
         val localScore: Int,
-        val reasons:    List<String>
+        val reasons:    List<String>,
+        val eventToken: Long? = null
     ) : ThreatEvent()
 
     data class VpnEvent(

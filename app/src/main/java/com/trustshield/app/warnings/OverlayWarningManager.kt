@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -102,8 +103,10 @@ object OverlayWarningManager {
     @Volatile private var activeView: ComposeView? = null
     @Volatile private var activeLifecycle: OverlayLifecycleOwner? = null
 
-    // Dedup: url → timestamp of last show
-    private val shownUrls = mutableMapOf<String, Long>()
+    // Dedup: url → timestamp of last show — bounded LRU to prevent memory leak
+    private val shownUrls = object : LinkedHashMap<String, Long>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>) = size > 100
+    }
 
     private val autoDismissRunnable = Runnable { dismissOnMainThread() }
 
@@ -115,7 +118,13 @@ object OverlayWarningManager {
      * Thread-safe — posts to main thread internally.
      * Dedup: same URL within DEDUP_WINDOW_MS is silently ignored.
      */
-    fun show(context: Context, warning: ThreatWarning) {
+    fun show(
+        context: Context,
+        warning: ThreatWarning,
+        popupToken: Long? = null,
+        tokenProvider: (() -> Long)? = null,
+        onAccepted: (() -> Unit)? = null
+    ) {
         val now = System.currentTimeMillis()
         synchronized(shownUrls) {
             val last = shownUrls[warning.url] ?: 0L
@@ -126,7 +135,7 @@ object OverlayWarningManager {
             shownUrls[warning.url] = now
         }
         Log.d(TAG, "⚠ Overlay show queued for: ${warning.url}")
-        mainHandler.post { showOnMainThread(context, warning) }
+        mainHandler.post { showOnMainThread(context, warning, popupToken, tokenProvider, onAccepted) }
     }
 
     /** Dismisses the current overlay. Thread-safe. */
@@ -134,9 +143,49 @@ object OverlayWarningManager {
         mainHandler.post { dismissOnMainThread() }
     }
 
+    /**
+     * Exits the dangerous website by performing a back navigation.
+     * Uses AccessibilityService GLOBAL_ACTION_BACK to close the phishing page naturally.
+     * Falls back to HOME intent if back action is unavailable.
+     */
+    fun exitDangerousWebsite(context: Context) {
+        mainHandler.post {
+            // Try AccessibilityService back action first
+            val service = context as? android.accessibilityservice.AccessibilityService
+            if (service != null) {
+                val backSuccess = service.performGlobalAction(
+                    android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+                )
+                if (backSuccess) {
+                    Log.d(TAG, "User exited dangerous website via BACK action")
+                    return@post
+                }
+            }
+
+            // Fallback: go to home screen
+            Log.d(TAG, "Fallback HOME action triggered")
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_HOME)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to exit dangerous website: ${e.message}", e)
+            }
+        }
+    }
+
     // ── Main-thread rendering ─────────────────────────────────────────────────
 
-    private fun showOnMainThread(context: Context, warning: ThreatWarning) {
+    private fun showOnMainThread(
+        context: Context,
+        warning: ThreatWarning,
+        popupToken: Long?,
+        tokenProvider: (() -> Long)?,
+        onAccepted: (() -> Unit)?
+    ) {
         // Dismiss any existing overlay first
         dismissOnMainThread()
 
@@ -169,16 +218,17 @@ object OverlayWarningManager {
                 TrustShieldTheme {
                     OverlayCard(
                         warning    = warning,
-                        onDismiss  = {
+                        onLeaveWebsite = {
                             mainHandler.removeCallbacks(autoDismissRunnable)
                             dismissOnMainThread()
+                            exitDangerousWebsite(context)
                         },
                         onContinue = {
                             mainHandler.removeCallbacks(autoDismissRunnable)
                             dismissOnMainThread()
                             try {
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(warning.url))
+                                    Intent(Intent.ACTION_VIEW, warning.url.toUri())
                                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 )
                             } catch (e: Exception) {
@@ -191,9 +241,21 @@ object OverlayWarningManager {
         }
 
         try {
+            // Final stale-popup guard: render-time validation on main thread,
+            // immediately before addView and after async queueing.
+            if (popupToken != null && tokenProvider != null) {
+                val activeToken = tokenProvider.invoke()
+                if (popupToken != activeToken) {
+                    Log.d(TAG, "Overlay rejected at render-time popupToken=$popupToken activeToken=$activeToken url=${warning.url}")
+                    lifecycleOwner.stop()
+                    return
+                }
+            }
+
             wm.addView(view, params)
             activeView      = view
             activeLifecycle = lifecycleOwner
+            onAccepted?.invoke()
             Log.d(TAG, "Overlay added to WindowManager")
             mainHandler.postDelayed(autoDismissRunnable, AUTO_DISMISS_MS)
         } catch (e: Exception) {
@@ -225,7 +287,7 @@ object OverlayWarningManager {
     @androidx.compose.runtime.Composable
     private fun OverlayCard(
         warning: ThreatWarning,
-        onDismiss: () -> Unit,
+        onLeaveWebsite: () -> Unit,
         onContinue: () -> Unit
     ) {
         // Slide down from top + fade in simultaneously
@@ -304,29 +366,17 @@ object OverlayWarningManager {
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
 
-                        // Risk badge + score row
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically
+                        // Risk severity label
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(TrustShieldColors.ErrorRed)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(TrustShieldColors.ErrorRed)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text  = "HIGH RISK",
-                                    style = TrustShieldType.label,
-                                    color = Color.White
-                                )
-                            }
                             Text(
-                                text       = "Score: ${warning.score}",
-                                style      = TrustShieldType.caption,
-                                color      = TrustShieldColors.ErrorRed,
-                                fontWeight = FontWeight.Bold
+                                text  = "DANGEROUS PHISHING WEBSITE DETECTED",
+                                style = TrustShieldType.label,
+                                color = Color.White
                             )
                         }
 
@@ -368,10 +418,10 @@ object OverlayWarningManager {
                             Text(text = srcLabel, style = TrustShieldType.label, color = srcFg)
                         }
 
-                        // Signal chips — max 3 to keep overlay compact
+                        // Simplified user-friendly reasons — max 3 to keep overlay compact
                         if (warning.reasons.isNotEmpty()) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                warning.reasons.take(3).forEach { reason ->
+                                warning.reasons.take(3).map { simplifyReason(it) }.forEach { reason ->
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
@@ -396,9 +446,9 @@ object OverlayWarningManager {
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Primary action — Close Browser
+                        // Primary action — Leave Website
                         Button(
-                            onClick  = onDismiss,
+                            onClick  = onLeaveWebsite,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
@@ -408,7 +458,7 @@ object OverlayWarningManager {
                             )
                         ) {
                             Text(
-                                text  = "Close Browser",
+                                text  = "Leave Website",
                                 style = TrustShieldType.buttonText,
                                 color = Color.White
                             )
@@ -490,4 +540,29 @@ internal class OverlayLifecycleOwner :
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         vmStore.clear()
     }
+}
+
+// ── Reason simplification ─────────────────────────────────────────────────────
+// Maps internal heuristic labels to user-friendly messages.
+// Hides technical details like entropy, Levenshtein distance, and heuristic weights.
+
+private fun simplifyReason(technicalReason: String): String = when {
+    technicalReason.contains("banking keyword", ignoreCase = true) -> "Suspicious domain"
+    technicalReason.contains("suspicious", ignoreCase = true) -> "Suspicious domain"
+    technicalReason.contains("untrusted", ignoreCase = true) -> "Untrusted banking link"
+    technicalReason.contains("typo", ignoreCase = true) -> "Possible impersonation"
+    technicalReason.contains("phishing", ignoreCase = true) -> "Possible impersonation"
+    technicalReason.contains("clone", ignoreCase = true) -> "Possible impersonation"
+    technicalReason.contains("homograph", ignoreCase = true) -> "Suspicious characters"
+    technicalReason.contains("punycode", ignoreCase = true) -> "Suspicious domain encoding"
+    technicalReason.contains("levenshtein", ignoreCase = true) -> "Similar to known bank"
+    technicalReason.contains("entropy", ignoreCase = true) -> "Randomized domain"
+    technicalReason.contains("shortener", ignoreCase = true) -> "Hidden destination"
+    technicalReason.contains("raw ip", ignoreCase = true) -> "Suspicious IP address"
+    technicalReason.contains("apk", ignoreCase = true) -> "Malware download detected"
+    technicalReason.contains("escalation", ignoreCase = true) -> "Untrusted banking link"
+    technicalReason.contains("hyphen", ignoreCase = true) -> "Suspicious domain structure"
+    technicalReason.contains("subdomain", ignoreCase = true) -> "Suspicious domain structure"
+    technicalReason.contains("mixed script", ignoreCase = true) -> "Suspicious characters"
+    else -> "Suspicious website"
 }

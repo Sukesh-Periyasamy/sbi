@@ -19,6 +19,7 @@ import com.trustshield.app.session.ThreatEvent
 import com.trustshield.app.warnings.DetectionSource
 import com.trustshield.app.warnings.ThreatWarning
 import com.trustshield.app.warnings.WarningActivity
+import com.trustshield.app.warnings.OverlayWarningManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -82,11 +83,8 @@ class TrustShieldVpnService : VpnService() {
         fun start(context: Context) {
             val intent = Intent(context, TrustShieldVpnService::class.java)
                 .setAction(ACTION_START)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            // minSdk >= 31: always use startForegroundService
+            context.startForegroundService(intent)
         }
 
         fun stop(context: Context) {
@@ -103,8 +101,15 @@ class TrustShieldVpnService : VpnService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // Tracks how many times the packet loop has been restarted this session
-    private var packetLoopRestarts = 0    // Dedup: domain → last warned timestamp (shared by DNS + SNI paths)
-    private val recentDomainCache = mutableMapOf<String, Long>()
+    private var packetLoopRestarts = 0
+
+    // Dedup: domain → last warned timestamp (shared by DNS + SNI paths)
+    // Bounded to MAX_DOMAIN_CACHE entries to prevent unbounded memory growth
+    private val recentDomainCache = object : LinkedHashMap<String, Long>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>) =
+            size > MAX_DOMAIN_CACHE
+    }
+    private val MAX_DOMAIN_CACHE = 200
 
     // Warn-once guards
     private var lastWarnedDomain = ""
@@ -405,7 +410,6 @@ class TrustShieldVpnService : VpnService() {
      */
     private fun forwardPacket(packet: ByteArray, len: Int, output: FileOutputStream) {
         try {
-            // Only forward DNS packets manually; all other traffic routes via TUN
             val ihl     = (packet[0].toInt() and 0x0F) * 4
             val proto   = packet[9].toInt() and 0xFF
             if (proto != 17) return
@@ -419,25 +423,22 @@ class TrustShieldVpnService : VpnService() {
             val dnsLength = len - dnsStart
             val dnsPayload = packet.copyOfRange(dnsStart, dnsStart + dnsLength)
 
-            // Send DNS query to upstream and get response
+            // Bug fix: socket must be closed in finally to prevent fd leak on timeout
             val socket = DatagramSocket()
-            protect(socket)   // exclude from VPN tunnel to avoid routing loop
-            val upstream = InetAddress.getByName(UPSTREAM_DNS)
-            val query    = DatagramPacket(dnsPayload, dnsLength, upstream, DNS_PORT)
-            socket.send(query)
-
-            val responseBuffer = ByteArray(4096)
-            val response = DatagramPacket(responseBuffer, responseBuffer.size)
-            socket.soTimeout = 3000
-            socket.receive(response)
-            socket.close()
-
-            // Write DNS response back to TUN so the querying app gets its answer
-            val responseData = response.data.copyOf(response.length)
-            output.write(buildIpUdpPacket(responseData, upstream))
-
+            try {
+                protect(socket)
+                val upstream = InetAddress.getByName(UPSTREAM_DNS)
+                socket.send(DatagramPacket(dnsPayload, dnsLength, upstream, DNS_PORT))
+                val responseBuffer = ByteArray(4096)
+                val response = DatagramPacket(responseBuffer, responseBuffer.size)
+                socket.soTimeout = 3000
+                socket.receive(response)
+                val responseData = response.data.copyOf(response.length)
+                output.write(buildIpUdpPacket(responseData, upstream))
+            } finally {
+                socket.close()
+            }
         } catch (e: Exception) {
-            // Forwarding failure is non-fatal — the OS will retry or time out
             Log.w(TAG, "DNS forward error: ${e.message}")
         }
     }
@@ -514,7 +515,9 @@ class TrustShieldVpnService : VpnService() {
                 if (domain != lastWarnedDomain) {
                     lastWarnedDomain = domain
                     Log.d(TAG, "Warning triggered for: $domain")
-                    WarningActivity.launch(
+                    // Use OverlayWarningManager (not WarningActivity) — works on MIUI
+                    // without background Activity launch restrictions
+                    OverlayWarningManager.show(
                         context = this,
                         warning = ThreatWarning(
                             url     = url,
@@ -537,7 +540,7 @@ class TrustShieldVpnService : VpnService() {
                         ) {
                             backendWarnedDomains += domain
                             Log.d(TAG, "Warning triggered [BACKEND] for: $domain")
-                            WarningActivity.launch(
+                            OverlayWarningManager.show(
                                 context = this,
                                 warning = ThreatWarning(
                                     url        = url,
@@ -586,7 +589,7 @@ class TrustShieldVpnService : VpnService() {
     }
 
     private fun ensureNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        // minSdk >= 31: notification channel creation always supported
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.getNotificationChannel(NOTIF_CHANNEL) != null) return
         nm.createNotificationChannel(

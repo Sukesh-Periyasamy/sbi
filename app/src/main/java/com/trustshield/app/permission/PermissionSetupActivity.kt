@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import androidx.core.net.toUri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -74,9 +75,10 @@ import kotlinx.coroutines.launch
 
 import com.trustshield.app.vpn.TrustShieldVpnService
 
-private const val TAG      = "TrustShield"
-private const val PREFS    = "trustshield_prefs"
-private const val KEY_MIUI = "miui_popup_permission_attempted"
+private const val TAG              = "TrustShield"
+private const val PREFS            = "trustshield_prefs"
+private const val KEY_MIUI         = "miui_popup_permission_attempted"
+private const val KEY_MIUI_BATTERY = "miui_battery_permission_attempted"
 
 // ── Device detection ──────────────────────────────────────────────────────────
 
@@ -163,9 +165,38 @@ fun isOverlayPermissionGranted(context: Context): Boolean {
     return result
 }
 
+/**
+ * Production-grade battery optimization check covering two layers:
+ *
+ *   Layer 1 — PowerManager.isIgnoringBatteryOptimizations() : standard Android API
+ *   Layer 2 — SharedPreferences fallback                     : for MIUI devices where
+ *             the user selects "No restrictions" but the Android API never reflects it
+ *
+ * MIUI root cause: Xiaomi manages battery restrictions in its own Security Center.
+ * When the user selects "No restrictions", MIUI writes to its internal power management
+ * table but does NOT propagate the change back to the standard Android Doze whitelist.
+ * PowerManager.isIgnoringBatteryOptimizations() can therefore return false on a device
+ * where the permission is genuinely granted. The SharedPreferences flag records that
+ * the user visited the battery settings screen and is the final safety net.
+ */
 fun isBatteryOptimizationDisabled(context: Context): Boolean {
     val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    return pm.isIgnoringBatteryOptimizations(context.packageName)
+    val isXiaomi = isMiuiDevice()
+
+    // Layer 1: standard Android battery optimization API
+    val apiResult = pm.isIgnoringBatteryOptimizations(context.packageName)
+
+    // Layer 2: MIUI fallback flag — set when user taps "Disable Battery Restrictions"
+    val miuiFlag = prefs(context).getBoolean(KEY_MIUI_BATTERY, false)
+
+    // Full debug log — filter Logcat by "TrustShield" to inspect
+    Log.d(TAG, "Battery API=$apiResult")
+    Log.d(TAG, "MIUI Battery Fallback=$miuiFlag")
+
+    val result = apiResult || (isXiaomi && miuiFlag)
+
+    Log.d(TAG, "Final Battery Result=$result")
+    return result
 }
 
 fun isVpnPermissionGranted(context: Context): Boolean =
@@ -189,11 +220,11 @@ fun openOverlaySettings(context: Context) {
         prefs(context).edit().putBoolean(KEY_MIUI, true).apply()
         Log.d(TAG, "MIUI fallback flag set — user directed to overlay settings")
     }
-    try {
-        val intent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${context.packageName}")
-        )
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                "package:${context.packageName}".toUri()
+            )
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     } catch (e: Exception) {
@@ -210,7 +241,7 @@ fun openOverlaySettings(context: Context) {
         } catch (ex: Exception) {
             // Final fallback — app details page where overlay can be toggled
             val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-            fallbackIntent.data = Uri.parse("package:${context.packageName}")
+            fallbackIntent.data = "package:${context.packageName}".toUri()
             fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(fallbackIntent)
         }
@@ -373,12 +404,20 @@ fun PermissionSetupScreen(
                                 statusLabel = if (batteryEnabled) "UNRESTRICTED" else "RESTRICTED",
                                 isGranted   = batteryEnabled,
                                 buttonLabel = "Disable Battery Restrictions",
+                                helperText  = if (isMiui)
+                                    "MIUI devices may not correctly report battery optimization state. If you already selected 'No restrictions' in MIUI battery settings, TrustShield will continue normally."
+                                else null,
                                 onAction    = {
+                                    // Set MIUI fallback flag on Xiaomi devices before leaving the app
+                                    if (isMiuiDevice()) {
+                                        prefs(context).edit().putBoolean(KEY_MIUI_BATTERY, true).apply()
+                                        Log.d(TAG, "MIUI battery fallback flag set — user directed to battery settings")
+                                    }
                                     try {
                                         context.startActivity(
                                             Intent(
                                                 Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                                                Uri.parse("package:${context.packageName}")
+                                                "package:${context.packageName}".toUri()
                                             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         )
                                     } catch (e: Exception) {

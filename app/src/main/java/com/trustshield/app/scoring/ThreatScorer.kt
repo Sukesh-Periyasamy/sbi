@@ -44,6 +44,28 @@ object ThreatScorer {
         "yono.sbi.co.in", "netbanking.hdfcbank.com"
     )
 
+    // Trusted bank registered domains — bypass most phishing heuristics
+    // These are the effective registered domains (eTLD+1) for major Indian banks
+    private val TRUSTED_BANK_DOMAINS = setOf(
+        "sbi.bank.in",              // retail.sbi.bank.in, onlinesbi.sbi.bank.in
+        "onlinesbi.sbi",            // onlinesbi.sbi (legacy)
+        "icicibank.com",            // www.icicibank.com
+        "hdfcbank.com",             // netbanking.hdfcbank.com
+        "axisbank.com",             // www.axisbank.com
+        "kotak.com",                // www.kotak.com
+        "unionbankofindia.co.in",   // www.unionbankofindia.co.in
+        "bankofbaroda.in",          // www.bankofbaroda.in
+        "pnbindia.in",              // netbanking.pnbindia.in
+        "canarabank.in",            // netbanking.canarabank.in
+        "sbi.co.in",                // www.sbi.co.in (legacy)
+        "paytm.com"                 // paytm.com
+    )
+
+    // Multi-level Indian TLDs requiring special handling for registered domain extraction
+    private val INDIAN_MULTI_LEVEL_TLDS = setOf(
+        "co.in", "net.in", "org.in", "gen.in", "firm.in", "ind.in", "bank.in"
+    )
+
     // Canonical ASCII forms of bank brand names used for Levenshtein comparison
     private val bankBrandNames = listOf(
         "sbi", "hdfc", "icici", "axis", "kotak", "paytm", "yono"
@@ -59,9 +81,10 @@ object ThreatScorer {
         'ñ' to 'n', 'ç' to 'c', 'ß' to 's'
     )
 
-    private val ipPattern   = Regex("""^(\d{1,3}\.){3}\d{1,3}$""")
-    private val hyphenRegex = Regex("""-""")
-    private val punycodeRx  = Regex("""xn--""", RegexOption.IGNORE_CASE)
+    private val ipPattern        = Regex("""^(\d{1,3}\.){3}\d{1,3}$""")
+    private val hyphenRegex       = Regex("""-""")
+    private val punycodeRx        = Regex("""xn--""", RegexOption.IGNORE_CASE)
+    private val diacriticsRegex   = Regex("\\p{InCombiningDiacriticalMarks}")
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -70,6 +93,14 @@ object ThreatScorer {
         val lower   = raw.lowercase()
         val host    = extractHost(lower)
         val regHost = host ?: ""
+
+        // Extract registered domain (eTLD+1) with support for Indian multi-level TLDs
+        val registeredDomain = extractRegisteredDomain(regHost)
+        val isTrustedDomain = registeredDomain in TRUSTED_BANK_DOMAINS
+
+        android.util.Log.d("ThreatScorer", "Host=$regHost")
+        android.util.Log.d("ThreatScorer", "Registered domain=$registeredDomain")
+        android.util.Log.d("ThreatScorer", "Trusted domain match=$isTrustedDomain")
 
         // Normalise the host to ASCII for homograph / Levenshtein checks
         val asciiHost = normaliseToAscii(regHost)
@@ -86,13 +117,25 @@ object ThreatScorer {
         val hasBankKeyword   = containsBankKeyword(lower)
         val hasSuspiciousTld = isSuspiciousTld(lower)
 
-        if (hasBankKeyword)   fire(ThreatSignal.BANKING_KEYWORD)
+        // Bypass banking keyword penalty for trusted domains
+        if (hasBankKeyword && !isTrustedDomain) {
+            fire(ThreatSignal.BANKING_KEYWORD)
+            android.util.Log.d("ThreatScorer", "Banking keyword fired (not trusted)")
+        } else if (hasBankKeyword && isTrustedDomain) {
+            android.util.Log.d("ThreatScorer", "Banking keyword bypassed (trusted domain)")
+        }
 
         // ── B. Suspicious TLD ─────────────────────────────────────────────────
         if (hasSuspiciousTld) fire(ThreatSignal.SUSPICIOUS_TLD)
 
         // ── C. Escalation: banking keyword + suspicious TLD ───────────────────
-        if (hasBankKeyword && hasSuspiciousTld) fire(ThreatSignal.TLD_ESCALATION)
+        // Bypass escalation for trusted domains
+        if (hasBankKeyword && hasSuspiciousTld && !isTrustedDomain) {
+            fire(ThreatSignal.TLD_ESCALATION)
+            android.util.Log.d("ThreatScorer", "TLD escalation fired (not trusted)")
+        } else if (hasBankKeyword && hasSuspiciousTld && isTrustedDomain) {
+            android.util.Log.d("ThreatScorer", "TLD escalation bypassed (trusted domain)")
+        }
 
         // ── D. APK indicator ──────────────────────────────────────────────────
         if (containsApk(lower)) fire(ThreatSignal.APK_INDICATOR)
@@ -105,7 +148,13 @@ object ThreatScorer {
         if (isRawIp(host)) fire(ThreatSignal.RAW_IP_ADDRESS)
 
         // ── G. Typo / clone domain ────────────────────────────────────────────
-        if (isTypoDomain(lower, host)) fire(ThreatSignal.TYPO_DOMAIN)
+        // Bypass typo domain penalty for trusted domains
+        if (isTypoDomain(lower, host) && !isTrustedDomain) {
+            fire(ThreatSignal.TYPO_DOMAIN)
+            android.util.Log.d("ThreatScorer", "Typo domain fired (not trusted)")
+        } else if (isTypoDomain(lower, host) && isTrustedDomain) {
+            android.util.Log.d("ThreatScorer", "Typo domain bypassed (trusted domain)")
+        }
 
         // ── H. Hyphen pattern ─────────────────────────────────────────────────
         if (hasExcessiveHyphens(host)) fire(ThreatSignal.HYPHEN_PATTERN)
@@ -121,11 +170,13 @@ object ThreatScorer {
         // ── K. Punycode / IDN domain ──────────────────────────────────────────
         // xn-- prefix signals an Internationalised Domain Name.
         // Attackers use IDN to register lookalike domains (e.g. xn--paytm-abc.com).
+        // NEVER bypass punycode detection — even trusted domains should not use IDN
         if (isPunycode(regHost)) fire(ThreatSignal.PUNYCODE_DOMAIN)
 
         // ── L. Homograph attack ───────────────────────────────────────────────
         // Detects Unicode lookalike characters in the original (non-lowercased) host.
         // e.g. sbí-login.com — the í (U+00ED) looks identical to i in most fonts.
+        // NEVER bypass homograph detection — even trusted domains should not use Unicode lookalikes
         if (isHomographAttack(raw)) fire(ThreatSignal.HOMOGRAPH_ATTACK)
 
         // ── M. Levenshtein similarity ─────────────────────────────────────────
@@ -138,7 +189,13 @@ object ThreatScorer {
         // Legitimate banks use at most 2 labels (www.hdfcbank.com).
         // Phishing sites use deep subdomains to bury the real domain:
         // secure.login.sbi.fake-domain.xyz → 5 labels
-        if (hasDeepSubdomains(regHost)) fire(ThreatSignal.DEEP_SUBDOMAIN)
+        // Bypass subdomain depth penalty for trusted domains (they may use deep subdomains legitimately)
+        if (hasDeepSubdomains(regHost) && !isTrustedDomain) {
+            fire(ThreatSignal.DEEP_SUBDOMAIN)
+            android.util.Log.d("ThreatScorer", "Deep subdomain fired (not trusted)")
+        } else if (hasDeepSubdomains(regHost) && isTrustedDomain) {
+            android.util.Log.d("ThreatScorer", "Deep subdomain bypassed (trusted domain)")
+        }
 
         // ── O. Mixed Unicode scripts ──────────────────────────────────────────
         // A domain mixing Latin + Cyrillic + Greek characters is almost always
@@ -155,6 +212,8 @@ object ThreatScorer {
             total >= 30 -> ThreatVerdict.WARNING
             else        -> ThreatVerdict.SAFE
         }
+
+        android.util.Log.d("ThreatScorer", "Final score=$total verdict=$verdict")
 
         return ThreatResult(
             score   = total,
@@ -241,7 +300,7 @@ object ThreatScorer {
         val mapped = host.map { homographMap[it] ?: it }.joinToString("")
         // Step 2: NFD decomposition + strip combining diacritical marks (U+0300–U+036F)
         val nfd = Normalizer.normalize(mapped, Normalizer.Form.NFD)
-        return nfd.replace(Regex("\\p{InCombiningDiacriticalMarks}"), "")
+        return nfd.replace(diacriticsRegex, "")
     }
 
     /**
@@ -306,6 +365,32 @@ object ThreatScorer {
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
+
+    /**
+     * Extracts the registered domain (eTLD+1) from a host.
+     * Handles Indian multi-level TLDs correctly:
+     *   retail.sbi.bank.in       → sbi.bank.in
+     *   www.unionbankofindia.co.in → unionbankofindia.co.in
+     *   secure.hdfcbank.com      → hdfcbank.com
+     *   sbi-login.xyz            → sbi-login.xyz
+     */
+    fun extractRegisteredDomain(host: String): String {
+        if (host.isBlank()) return ""
+        val labels = host.split('.')
+        if (labels.size < 2) return host
+
+        // Check for Indian multi-level TLDs (e.g. co.in, bank.in)
+        if (labels.size >= 3) {
+            val lastTwo = "${labels[labels.size - 2]}.${labels[labels.size - 1]}"
+            if (lastTwo in INDIAN_MULTI_LEVEL_TLDS) {
+                // eTLD+1 for multi-level TLD: take 3 labels
+                return "${labels[labels.size - 3]}.$lastTwo"
+            }
+        }
+
+        // Standard TLD: take 2 labels
+        return "${labels[labels.size - 2]}.${labels[labels.size - 1]}"
+    }
 
     /**
      * Extracts the registered domain label (second-to-last label before TLD).

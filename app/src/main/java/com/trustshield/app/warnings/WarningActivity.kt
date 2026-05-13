@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -156,7 +157,7 @@ class WarningActivity : ComponentActivity() {
         }
 
         private fun ensureNotificationChannel(context: Context) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            // minSdk >= 31, always create notification channel
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (nm.getNotificationChannel(NOTIF_CHANNEL_ID) != null) return
             nm.createNotificationChannel(
@@ -183,10 +184,9 @@ class WarningActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
         // Modern API (Android 8.1+) — works alongside the deprecated flags above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        }
+        // minSdk >= 31 (Android 12+), these APIs are always available
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
         super.onCreate(savedInstanceState)
         val url        = intent.getStringExtra(EXTRA_URL)     ?: ""
         val score      = intent.getIntExtra(EXTRA_SCORE, 0)
@@ -211,7 +211,7 @@ class WarningActivity : ComponentActivity() {
                         source     = source,
                         confidence = confidence,
                         onContinue = {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                             finish()
                         },
                         onClose = { finish() }

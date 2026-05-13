@@ -3,6 +3,7 @@ package com.trustshield.app.session
 import android.content.Context
 import android.util.Log
 import com.trustshield.app.scoring.ThreatVerdict
+import com.trustshield.app.service.TrustShieldAccessibilityService
 import com.trustshield.app.warnings.DetectionSource
 import com.trustshield.app.warnings.OverlayWarningManager
 import com.trustshield.app.warnings.ThreatWarning
@@ -89,6 +90,28 @@ object SessionManager {
         scope.launch { processEvent(context, event) }
     }
 
+    /**
+     * Returns the list of recently detected phishing domains for dashboard display.
+     * Thread-safe — returns a snapshot of current detections.
+     */
+    fun getRecentDetections(): List<DetectedSite> {
+        val now = System.currentTimeMillis()
+        val recent = mutableListOf<DetectedSite>()
+        
+        // Collect from suppressed domains (these have already triggered warnings)
+        suppressed.entries.forEach { (domain, suppressUntil) ->
+            if (suppressUntil > now) {
+                recent.add(DetectedSite(
+                    domain = domain,
+                    timestamp = suppressUntil - SESSION_SUPPRESS_MS,
+                    threatType = "Phishing"
+                ))
+            }
+        }
+        
+        return recent.sortedByDescending { it.timestamp }.take(10)
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private suspend fun processEvent(context: Context, event: ThreatEvent) {
@@ -123,9 +146,16 @@ object SessionManager {
 
                 suppress(domain, event.timestamp)
 
-                if (session.verdict == ThreatVerdict.HIGH_RISK ||
-                    session.verdict == ThreatVerdict.WARNING) {
-                    emitWarning(context, session)
+                if (session.verdict == ThreatVerdict.HIGH_RISK) {
+                    val token = accessibilityEventToken(event, partner)
+                    if (token != null && !TrustShieldAccessibilityService.isEventSequenceActive(token)) {
+                        Log.d(
+                            TAG,
+                            "Skipping stale correlated warning for: $domain popupToken=$token activeToken=${TrustShieldAccessibilityService.currentEventSequence()} reason=pre-emit-check"
+                        )
+                        return
+                    }
+                    emitWarning(context, session, token)
                 }
 
             } else {
@@ -206,7 +236,14 @@ object SessionManager {
 
     // ── Warning emission ──────────────────────────────────────────────────────
 
-    private fun emitWarning(context: Context, session: CorrelatedSession) {
+    private fun emitWarning(context: Context, session: CorrelatedSession, eventToken: Long?) {
+        if (eventToken != null && !TrustShieldAccessibilityService.isEventSequenceActive(eventToken)) {
+            Log.d(
+                TAG,
+                "Skipping stale correlated warning at launch for: ${session.domain} popupToken=$eventToken activeToken=${TrustShieldAccessibilityService.currentEventSequence()} reason=launch-check"
+            )
+            return
+        }
         Log.d(TAG, "⚠ Correlated warning: ${session.domain} confidence=${session.confidence}")
         OverlayWarningManager.show(
             context = context,
@@ -217,7 +254,9 @@ object SessionManager {
                 reasons    = session.reasons,
                 source     = DetectionSource.LOCAL,
                 confidence = session.confidence
-            )
+            ),
+            popupToken = eventToken,
+            tokenProvider = { TrustShieldAccessibilityService.currentEventSequence() }
         )
     }
 
@@ -242,6 +281,12 @@ object SessionManager {
     private fun layerName(event: ThreatEvent) = when (event) {
         is ThreatEvent.AccessibilityEvent -> "Accessibility(${event.sourceApp})"
         is ThreatEvent.VpnEvent           -> "VPN(${event.via})"
+    }
+
+    private fun accessibilityEventToken(a: ThreatEvent, b: ThreatEvent): Long? {
+        val accessEvent = (a as? ThreatEvent.AccessibilityEvent)
+            ?: (b as? ThreatEvent.AccessibilityEvent)
+        return accessEvent?.eventToken
     }
 
     private val ThreatEvent.localScore: Int get() = when (this) {
@@ -271,4 +316,16 @@ data class CorrelatedSession(
     val hasUiSignal: Boolean,
     val hasNetSignal: Boolean,
     val vpnVia:      ThreatEvent.VpnObservation?
+)
+
+
+// ── DetectedSite ──────────────────────────────────────────────────────────────
+
+/**
+ * A detected phishing site for dashboard display.
+ */
+data class DetectedSite(
+    val domain: String,
+    val timestamp: Long,
+    val threatType: String
 )
