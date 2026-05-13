@@ -7,10 +7,19 @@ import retrofit2.http.Query
 interface ThreatApi {
 
     /**
-     * Sends a URL to the backend for threat analysis.
-     * Placeholder base URL: https://example.com/
-     * Full endpoint:        https://example.com/analyze?url=<encoded_url>
+     * Domain reputation lookup.
+     * Endpoint: GET /analyze?domain=<encoded_domain>
+     *
+     * Example: GET https://api.trustshield.app/analyze?domain=fake-bank.xyz
+     *
+     * Response:
+     * {
+     *   "domain":     "fake-bank.xyz",
+     *   "risk":       "HIGH_RISK",
+     *   "confidence": 96,
+     *   "source":     "backend"
+     * }
      */
     @GET("analyze")
-    suspend fun analyze(@Query("url") url: String): BackendThreatResponse
+    suspend fun analyze(@Query("domain") domain: String): BackendThreatResponse
 }
