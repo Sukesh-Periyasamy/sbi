@@ -62,9 +62,13 @@ class TrustShieldVpnService : VpnService() {
         private const val TAG             = "TrustShieldVPN"
         private const val NOTIF_CHANNEL   = "trustshield_vpn"
         private const val NOTIF_ID        = 2001
-        private const val UPSTREAM_DNS    = "8.8.8.8"   // Google DNS — reliable fallback
+        private const val UPSTREAM_DNS    = "8.8.8.8"
         private const val DNS_PORT        = 53
+        private const val HTTPS_PORT      = 443
         private const val DEDUP_WINDOW_MS = 5_000L
+        // Max bytes we buffer per TCP stream for SNI extraction.
+        // ClientHello is always < 4 KB; we stop buffering after this.
+        private const val TCP_BUFFER_MAX  = 4096
 
         // Financial / security keywords — only domains containing one of these are scored
         private val FINANCIAL_KEYWORDS = setOf(
@@ -96,12 +100,22 @@ class TrustShieldVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Dedup: domain → last warned timestamp
+    // Dedup: domain → last warned timestamp (shared by DNS + SNI paths)
     private val recentDomainCache = mutableMapOf<String, Long>()
 
-    // Warn-once guards (mirrors AccessibilityService pattern)
+    // Warn-once guards
     private var lastWarnedDomain = ""
     private val backendWarnedDomains = mutableSetOf<String>()
+
+    // SNI-specific dedup: tracks domains already extracted via SNI this session
+    // to avoid re-scoring the same HTTPS connection on every TCP segment.
+    private val sniSeenDomains = mutableSetOf<String>()
+
+    // TCP stream reassembly buffers keyed by "srcIP:srcPort".
+    // We accumulate TCP payload bytes until we have enough to attempt SNI extraction,
+    // then discard the buffer. This handles cases where the ClientHello arrives
+    // split across multiple TCP segments (rare but possible on slow connections).
+    private val tcpStreamBuffers = mutableMapOf<String, ByteArray>()
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -157,6 +171,7 @@ class TrustShieldVpnService : VpnService() {
         serviceScope.cancel()
         try { vpnInterface?.close() } catch (_: Exception) {}
         vpnInterface = null
+        tcpStreamBuffers.clear()   // release stream reassembly memory
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d(TAG, "VPN stopped")
@@ -189,12 +204,20 @@ class TrustShieldVpnService : VpnService() {
 
                 val packet = buffer.copyOf(len)
 
-                // Parse IP header to find UDP DNS packets
+                // ── DNS interception (UDP port 53) ────────────────────────────
                 val domain = tryExtractDnsDomain(packet, len)
                 if (domain != null) {
                     Log.d(TAG, "DNS Query=$domain")
-                    // Score asynchronously — do not block the packet loop
                     launch { scoreDomain(domain) }
+                }
+
+                // ── TLS SNI interception (TCP port 443) ───────────────────────
+                // Catches HTTPS connections that bypass DNS (DoH, cached DNS, etc.)
+                val sni = tryExtractTlsSni(packet, len)
+                if (sni != null && sni !in sniSeenDomains) {
+                    sniSeenDomains += sni
+                    Log.d(TAG, "SNI=$sni")
+                    launch { scoreDomain(sni) }
                 }
 
                 // Forward packet to upstream and write response back to TUN
@@ -247,6 +270,79 @@ class TrustShieldVpnService : VpnService() {
         if (dnsLength < 12) return null
 
         return DnsPacketParser.extractQueryDomain(packet, len, dnsStart, dnsLength)
+    }
+
+    // ── TLS SNI extraction ────────────────────────────────────────────
+
+    /**
+     * Attempts to extract a TLS SNI hostname from a raw IP packet.
+     *
+     * Steps:
+     *   1. Validate IPv4 + TCP headers
+     *   2. Check destination port == 443
+     *   3. Extract TCP payload (data after the TCP header)
+     *   4. Accumulate payload bytes in a per-stream buffer (handles segmentation)
+     *   5. Attempt TLS ClientHello parsing on the accumulated buffer
+     *   6. On success: discard the buffer (we have what we need)
+     *      On failure: keep buffering up to TCP_BUFFER_MAX, then discard
+     *
+     * Stream key: "srcIP:srcPort" uniquely identifies a TCP connection from
+     * the device's perspective (one connection per browser tab / app request).
+     */
+    private fun tryExtractTlsSni(packet: ByteArray, len: Int): String? {
+        if (len < 40) return null   // minimum IPv4(20) + TCP(20) headers
+
+        // IPv4 version check
+        if ((packet[0].toInt() and 0xFF) shr 4 != 4) return null
+
+        // Protocol must be TCP (6)
+        val protocol = packet[9].toInt() and 0xFF
+        if (protocol != 6) return null
+
+        val ihl = (packet[0].toInt() and 0x0F) * 4
+        if (ihl < 20 || ihl + 20 > len) return null
+
+        // TCP destination port must be 443
+        val tcpStart  = ihl
+        val dstPort   = ((packet[tcpStart + 2].toInt() and 0xFF) shl 8) or
+                         (packet[tcpStart + 3].toInt() and 0xFF)
+        if (dstPort != HTTPS_PORT) return null
+
+        // TCP data offset (header length in 32-bit words, stored in high nibble of byte 12)
+        val tcpDataOffset = ((packet[tcpStart + 12].toInt() and 0xFF) shr 4) * 4
+        if (tcpDataOffset < 20 || tcpStart + tcpDataOffset > len) return null
+
+        val payloadStart = tcpStart + tcpDataOffset
+        val payloadLen   = len - payloadStart
+        if (payloadLen <= 0) return null   // ACK/SYN with no data
+
+        // Build a stream key from source IP + source port
+        val srcIp   = "${packet[12].toInt() and 0xFF}.${packet[13].toInt() and 0xFF}" +
+                      ".${packet[14].toInt() and 0xFF}.${packet[15].toInt() and 0xFF}"
+        val srcPort = ((packet[tcpStart].toInt() and 0xFF) shl 8) or
+                       (packet[tcpStart + 1].toInt() and 0xFF)
+        val streamKey = "$srcIp:$srcPort"
+
+        // Accumulate TCP payload bytes for this stream
+        val existing = tcpStreamBuffers[streamKey] ?: ByteArray(0)
+        val combined = existing + packet.copyOfRange(payloadStart, payloadStart + payloadLen)
+
+        // Attempt SNI extraction on the accumulated buffer
+        val sni = TlsClientHelloParser.extractSni(combined, combined.size)
+        if (sni != null) {
+            tcpStreamBuffers.remove(streamKey)   // done with this stream
+            return sni
+        }
+
+        // Not enough data yet — keep buffering unless we've exceeded the limit
+        if (combined.size < TCP_BUFFER_MAX) {
+            tcpStreamBuffers[streamKey] = combined
+        } else {
+            // Exceeded buffer limit without finding a ClientHello — discard
+            tcpStreamBuffers.remove(streamKey)
+        }
+
+        return null
     }
 
     // ── Packet forwarding ─────────────────────────────────────────────────────
@@ -346,7 +442,7 @@ class TrustShieldVpnService : VpnService() {
         val result = ThreatScorer.score(url)
 
         Log.d(TAG, "─────────────────────────────────")
-        Log.d(TAG, "DNS Query=$domain")
+        Log.d(TAG, "Domain=$domain")
         Log.d(TAG, "Score=${result.score}")
         Log.d(TAG, "Verdict=${result.verdict}")
         if (result.reasons.isNotEmpty()) Log.d(TAG, "Reasons=${result.reasons}")
