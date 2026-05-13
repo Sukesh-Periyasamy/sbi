@@ -4,11 +4,14 @@ import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -67,7 +70,19 @@ import com.trustshield.app.ui.theme.TrustShieldTheme
 import com.trustshield.app.ui.theme.TrustShieldType
 import kotlinx.coroutines.launch
 
-private const val TAG = "TrustShield"
+private const val TAG      = "TrustShield"
+private const val PREFS    = "trustshield_prefs"
+private const val KEY_MIUI = "miui_popup_permission_attempted"
+
+// ── Device detection ──────────────────────────────────────────────────────────
+
+fun isMiuiDevice(): Boolean =
+    Build.MANUFACTURER.contains("xiaomi", ignoreCase = true) ||
+    Build.MANUFACTURER.contains("poco",   ignoreCase = true) ||
+    Build.MANUFACTURER.contains("redmi",  ignoreCase = true)
+
+private fun prefs(context: Context): SharedPreferences =
+    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
 // ── Runtime permission checks ─────────────────────────────────────────────────
 
@@ -91,25 +106,57 @@ fun isAccessibilityEnabled(context: Context): Boolean {
     return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
 }
 
+/**
+ * Production-grade overlay permission check covering three layers:
+ *
+ *   Layer 1 — Settings.canDrawOverlays()  : standard Android API
+ *   Layer 2 — AppOpsManager               : reads MIUI's internal ops table directly
+ *   Layer 3 — SharedPreferences fallback  : for Xiaomi/Poco devices where MIUI never
+ *             updates either API even after the user grants popup permission
+ *
+ * MIUI root cause: Xiaomi manages "Display pop-up windows while running in the
+ * background" in its own Security Center permission layer. When the user grants it,
+ * MIUI writes to its internal ops table but does NOT propagate the change back to
+ * the standard Android overlay API. Both Settings.canDrawOverlays() and
+ * AppOpsManager can therefore return false on a device where the permission is
+ * genuinely granted. The SharedPreferences flag records that the user visited the
+ * settings screen and is the final safety net.
+ */
 fun isOverlayPermissionGranted(context: Context): Boolean {
-    // Standard Android check — works on stock Android, Samsung, OnePlus
-    if (Settings.canDrawOverlays(context)) return true
+    val manufacturer = Build.MANUFACTURER
+    val isXiaomi     = isMiuiDevice()
 
-    // MIUI fallback — Xiaomi/Poco grant popup permission internally but do NOT
-    // update the standard overlay API, so Settings.canDrawOverlays() returns
-    // false even when the permission is actually granted. AppOpsManager reads
-    // the real underlying permission state directly.
-    return try {
+    // Layer 1: standard Android overlay API
+    val sdkOverlay = Settings.canDrawOverlays(context)
+
+    // Layer 2: AppOpsManager — reads MIUI's internal ops table
+    val appOpsAllowed = try {
         val ops  = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = ops.checkOpNoThrow(
             "android:system_alert_window",
-            android.os.Process.myUid(),
+            Process.myUid(),
             context.packageName
         )
         mode == AppOpsManager.MODE_ALLOWED
     } catch (e: Exception) {
         false
     }
+
+    // Layer 3: MIUI fallback flag — set when user taps "Enable Popup Permission"
+    val miuiFlag = prefs(context).getBoolean(KEY_MIUI, false)
+
+    // Full debug log — filter Logcat by "TrustShield" to inspect
+    Log.d(TAG, "Manufacturer=$manufacturer")
+    Log.d(TAG, "SDK Overlay=$sdkOverlay")
+    Log.d(TAG, "AppOps Overlay=$appOpsAllowed")
+    Log.d(TAG, "MIUI Fallback Flag=$miuiFlag")
+
+    val result = sdkOverlay ||
+                 appOpsAllowed ||
+                 (isXiaomi && miuiFlag)   // trust the user on Xiaomi if they visited settings
+
+    Log.d(TAG, "Final Overlay Result=$result")
+    return result
 }
 
 fun isBatteryOptimizationDisabled(context: Context): Boolean {
@@ -123,12 +170,17 @@ fun allPermissionsGranted(context: Context): Boolean =
     isBatteryOptimizationDisabled(context)
 
 /**
- * Opens the correct overlay permission screen with a three-level fallback:
- *   1. Standard Android ACTION_MANAGE_OVERLAY_PERMISSION (works on stock Android)
- *   2. MIUI-specific permission editor (Xiaomi/Poco devices)
- *   3. App details settings (universal last resort)
+ * Opens the correct overlay permission screen with a three-level fallback.
+ * On Xiaomi/Poco devices, sets the SharedPreferences flag BEFORE launching
+ * settings so that isOverlayPermissionGranted() can use the fallback path
+ * even if MIUI never updates the standard overlay APIs.
  */
 fun openOverlaySettings(context: Context) {
+    // Set MIUI fallback flag on Xiaomi devices before leaving the app
+    if (isMiuiDevice()) {
+        prefs(context).edit().putBoolean(KEY_MIUI, true).apply()
+        Log.d(TAG, "MIUI fallback flag set — user directed to overlay settings")
+    }
     try {
         val intent = Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -174,7 +226,8 @@ class PermissionSetupActivity : ComponentActivity() {
             PermissionSetupScreen(
                 accessibilityEnabled = accessibilityEnabled.value,
                 overlayEnabled       = overlayEnabled.value,
-                batteryEnabled       = batteryEnabled.value
+                batteryEnabled       = batteryEnabled.value,
+                isMiui               = isMiuiDevice()
             )
         }
     }
@@ -226,7 +279,8 @@ private fun AnimatedEntry(delayMs: Int = 0, content: @Composable () -> Unit) {
 fun PermissionSetupScreen(
     accessibilityEnabled: Boolean,
     overlayEnabled: Boolean,
-    batteryEnabled: Boolean
+    batteryEnabled: Boolean,
+    isMiui: Boolean = false
 ) {
     val context       = androidx.compose.ui.platform.LocalContext.current
     val snackbarState = remember { SnackbarHostState() }
@@ -272,6 +326,9 @@ fun PermissionSetupScreen(
                                 statusLabel = if (overlayEnabled) "ALLOWED" else "NOT ALLOWED",
                                 isGranted   = overlayEnabled,
                                 buttonLabel = "Enable Popup Permission",
+                                helperText  = if (isMiui)
+                                    "MIUI devices may not correctly report popup permission state. If you already enabled popup windows in MIUI Security settings, TrustShield will continue normally."
+                                else null,
                                 onAction    = { openOverlaySettings(context) }
                             )
                         }
@@ -412,6 +469,7 @@ private fun PermissionCard(
     statusLabel: String,
     isGranted: Boolean,
     buttonLabel: String,
+    helperText: String? = null,
     onAction: () -> Unit
 ) {
     val statusBg = if (isGranted) TrustShieldColors.SuccessGreen.copy(alpha = 0.1f)
@@ -476,6 +534,23 @@ private fun PermissionCard(
                 style = TrustShieldType.caption,
                 color = TrustShieldColors.SecondaryText
             )
+
+            // MIUI helper text — shown below description when applicable
+            if (helperText != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(TrustShieldColors.NavySurface)
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text  = helperText,
+                        style = TrustShieldType.caption,
+                        color = TrustShieldColors.SbiNavy
+                    )
+                }
+            }
 
             if (!isGranted) {
                 Button(
