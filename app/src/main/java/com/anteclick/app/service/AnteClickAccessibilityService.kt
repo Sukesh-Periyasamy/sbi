@@ -25,7 +25,7 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
-class TrustShieldAccessibilityService : AccessibilityService() {
+class AnteClickAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "AnteClick"
@@ -114,17 +114,17 @@ class TrustShieldAccessibilityService : AccessibilityService() {
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 100L
         }
-        Log.d(TAG, "TrustShieldAccessibilityService connected")
+        Log.d(TAG, "AnteClickAccessibilityService connected")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
-        Log.d(TAG, "TrustShieldAccessibilityService destroyed")
+        Log.d(TAG, "AnteClickAccessibilityService destroyed")
     }
 
     override fun onInterrupt() {
-        Log.d(TAG, "TrustShieldAccessibilityService interrupted")
+        Log.d(TAG, "AnteClickAccessibilityService interrupted")
     }
 
     // ── Event entry point ─────────────────────────────────────────────────────
@@ -510,7 +510,7 @@ class TrustShieldAccessibilityService : AccessibilityService() {
             return
         }
         OverlayWarningManager.show(
-            context = this@TrustShieldAccessibilityService,
+            context = this@AnteClickAccessibilityService,
             warning = warning,
             popupToken = eventToken,
             tokenProvider = { currentEventSequence() },
@@ -552,7 +552,7 @@ class TrustShieldAccessibilityService : AccessibilityService() {
 
             val domain = url.substringAfter("://").substringBefore("/").substringBefore("?")
             SessionManager.report(
-                context = this@TrustShieldAccessibilityService,
+                context = this@AnteClickAccessibilityService,
                 event   = ThreatEvent.AccessibilityEvent(
                     domain     = domain.lowercase(),
                     timestamp  = System.currentTimeMillis(),
