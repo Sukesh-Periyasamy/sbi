@@ -35,11 +35,17 @@ async def health_check(
     """
     redis_connected = await cache.is_connected()
     
-    # Simple format for basic health checks
+    # BEST FIX: Always return full structure for Render compatibility
+    # Simple format option kept for backward compatibility
     if simple:
-        return {"status": "ok" if redis_connected else "degraded"}
+        return {
+            "status": "ok" if redis_connected else "degraded",
+            "version": "1.0.0",
+            "environment": settings.environment,
+            "redis_connected": redis_connected
+        }
     
-    # Detailed format for monitoring
+    # Full detailed format for monitoring (default)
     response = HealthCheckResponse(
         status="healthy" if redis_connected else "degraded",
         version="1.0.0",
