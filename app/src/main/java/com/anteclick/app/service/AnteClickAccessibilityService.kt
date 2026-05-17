@@ -79,8 +79,16 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         private const val URL_DEDUP_WINDOW_MS = 5_000L
         private const val STABLE_EVENT_THROTTLE_MS = 1500L
-        private const val NAVIGATION_STABILITY_MS = 400L  // URL must be stable for 400ms
+        private const val NAVIGATION_STABILITY_MS = 300L  // Reduced to 300ms for better responsiveness
         private val HOST_REGEX = Regex("^[a-z0-9.-]+$")
+        
+        // Known TLDs for URL validation
+        private val KNOWN_TLDS = setOf(
+            "com", "org", "net", "edu", "gov", "mil", "int",
+            "xyz", "top", "click", "shop", "live", "buzz",
+            "in", "co", "uk", "us", "ca", "au", "de", "fr",
+            "ru", "tk", "ml", "ga", "cf", "gq"
+        )
 
         // Global event sequence token used to cancel stale async warning paths.
         private val latestEventSequence = AtomicLong(0L)
@@ -180,26 +188,31 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         val now = System.currentTimeMillis()
 
-        // Navigation stability check: URL must be stable for NAVIGATION_STABILITY_MS
-        val isNavigation = pkg != lastObservedPackage || url != lastObservedUrl
-        if (isNavigation) {
+        // Check if this is a new navigation or same URL
+        val isNewNavigation = pkg != lastObservedPackage || url != lastObservedUrl
+        
+        if (isNewNavigation) {
+            // New URL detected - record it
             lastObservedPackage = pkg
             lastObservedUrl = url
             lastObservedTime = now
-            Log.d(TAG, "New navigation detected - waiting for stability: url=$url")
-            return  // Wait for next event to confirm stability
+            Log.d(TAG, "New URL detected: $url - will process after stability check")
         }
 
         // Check if URL has been stable long enough
         val stabilityDuration = now - lastObservedTime
         if (stabilityDuration < NAVIGATION_STABILITY_MS) {
-            Log.d(TAG, "URL not yet stable - duration=${stabilityDuration}ms (need ${NAVIGATION_STABILITY_MS}ms)")
-            return
+            Log.d(TAG, "URL stability check: ${stabilityDuration}ms / ${NAVIGATION_STABILITY_MS}ms")
+            // Don't return immediately - allow processing if this is a browser package
+            // Messaging apps need strict stability, browsers can be more lenient
+            if (isMessaging) {
+                return  // Strict for messaging apps to prevent chat scanning
+            }
         }
 
-        // Increment token ONLY after URL is stable
+        // Increment token for this navigation
         val eventToken = latestEventSequence.incrementAndGet()
-        Log.d(TAG, "Token[stable-navigation]=$eventToken url=$url stabilityDuration=${stabilityDuration}ms")
+        Log.d(TAG, "Processing URL: $url (token=$eventToken, stability=${stabilityDuration}ms)")
 
         Log.d(TAG, "Extracted URL=$url token=$eventToken")
         Log.d(TAG, "Package=$pkg")
@@ -261,33 +274,34 @@ class AnteClickAccessibilityService : AccessibilityService() {
             for (viewId in CHROME_URL_VIEW_IDS) {
                 val nodes = source.findAccessibilityNodeInfosByViewId(viewId)
                 for (node in nodes) {
-                    // CRITICAL: Skip editable or focused fields - user is typing
-                    if (node.isEditable || node.isFocused) {
-                        Log.d(TAG, "REJECTED: Editable/focused address bar (user typing) viewId=$viewId")
-                        node.recycle()
-                        continue
-                    }
-
                     val text = node.text?.toString()
+                    val isEditable = node.isEditable
+                    val isFocused = node.isFocused
                     node.recycle()
+                    
                     if (!text.isNullOrBlank()) {
-                        Log.d(TAG, "Chrome address bar text: ${text.take(100)}")
+                        Log.d(TAG, "Chrome address bar: text='${text.take(100)}' editable=$isEditable focused=$isFocused")
 
-                        // Reject search queries
-                        if (isSearchQuery(text)) {
-                            Log.d(TAG, "REJECTED: Search query detected")
+                        // Skip if user is actively typing (focused)
+                        if (isFocused) {
+                            Log.d(TAG, "REJECTED: User actively typing (focused)")
                             continue
                         }
 
-                        val url = firstUrlIn(text)
-                        if (url != null) {
-                            Log.d(TAG, "ACCEPTED: Chrome address bar URL=$url")
-                            return url
-                        }
-                        if (text.contains('.') && !text.contains(' ')) {
-                            val constructed = if (text.startsWith("http")) text else "https://$text"
-                            Log.d(TAG, "ACCEPTED: Chrome constructed URL=$constructed")
-                            return constructed
+                        // Accept editable but not focused - this is a committed URL
+                        if (isUrlShaped(text)) {
+                            val url = firstUrlIn(text)
+                            if (url != null) {
+                                Log.d(TAG, "ACCEPTED: Chrome address bar URL=$url")
+                                return url
+                            }
+                            if (text.contains('.') && !text.contains(' ')) {
+                                val constructed = if (text.startsWith("http")) text else "https://$text"
+                                Log.d(TAG, "ACCEPTED: Chrome constructed URL=$constructed")
+                                return constructed
+                            }
+                        } else {
+                            Log.d(TAG, "REJECTED: Text not URL-shaped")
                         }
                     }
                 }
@@ -295,7 +309,6 @@ class AnteClickAccessibilityService : AccessibilityService() {
         }
 
         // Generic browser address bar detection
-        // Look for non-editable URL fields only
         return findUrlInAddressBarOnly(source)
     }
 
@@ -322,12 +335,13 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
     /**
      * Find URL ONLY in address bar nodes - NOT in page content
+     * More lenient for browsers - accepts editable but not focused nodes
      */
     private fun findUrlInAddressBarOnly(node: AccessibilityNodeInfo?): String? {
         node ?: return null
 
-        // CRITICAL: Skip editable nodes - these are input fields
-        if (node.isEditable || node.isFocused) {
+        // Skip if user is actively typing (focused)
+        if (node.isFocused) {
             return null
         }
 
@@ -335,19 +349,23 @@ class AnteClickAccessibilityService : AccessibilityService() {
         val className = node.className?.toString()?.lowercase() ?: ""
         val isAddressBarLike = className.contains("url") || 
                                className.contains("address") ||
-                               className.contains("omnibox")
+                               className.contains("omnibox") ||
+                               className.contains("edittext")
 
         if (isAddressBarLike) {
             node.text?.toString()?.let { text ->
-                if (!isSearchQuery(text)) {
+                if (isUrlShaped(text)) {
                     val url = firstUrlIn(text)
-                    if (url != null) return url
+                    if (url != null) {
+                        Log.d(TAG, "ACCEPTED: Address bar URL=$url")
+                        return url
+                    }
                 }
             }
         }
 
         // Recursively check children (limited depth)
-        for (i in 0 until minOf(node.childCount, 10)) {  // Limit depth to prevent deep traversal
+        for (i in 0 until minOf(node.childCount, 10)) {
             val child = node.getChild(i) ?: continue
             val url = findUrlInAddressBarOnly(child)
             child.recycle()
@@ -367,28 +385,34 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         // ONLY extract URLs when in browser context
         if (currentContext) {
-            // CRITICAL: Skip editable nodes
-            if (node.isEditable || node.isFocused) {
+            // Skip if user is actively typing (focused)
+            if (node.isFocused) {
                 return null
             }
 
             node.text?.toString()?.let { text ->
-                if (!isSearchQuery(text)) {
+                if (isUrlShaped(text)) {
                     val url = firstUrlIn(text)
-                    if (url != null) return url
+                    if (url != null) {
+                        Log.d(TAG, "ACCEPTED: WebView URL=$url")
+                        return url
+                    }
                 }
             }
 
             node.contentDescription?.toString()?.let { desc ->
-                if (!isSearchQuery(desc)) {
+                if (isUrlShaped(desc)) {
                     val url = firstUrlIn(desc)
-                    if (url != null) return url
+                    if (url != null) {
+                        Log.d(TAG, "ACCEPTED: WebView URL from description=$url")
+                        return url
+                    }
                 }
             }
         }
 
         // Recursively check children with depth limit
-        for (i in 0 until minOf(node.childCount, 10)) {  // Limit children to prevent deep traversal
+        for (i in 0 until minOf(node.childCount, 10)) {
             val child = node.getChild(i) ?: continue
             val url = findUrlInBrowserLikeNode(child, currentContext, depth + 1)
             child.recycle()
@@ -407,6 +431,47 @@ class AnteClickAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Check if text looks like a URL (not a sentence or chat message)
+     */
+    private fun isUrlShaped(text: String): Boolean {
+        val trimmed = text.trim()
+        
+        // Must have reasonable length
+        if (trimmed.length < 4 || trimmed.length > 255) return false
+        
+        // Must not contain spaces (URLs don't have spaces)
+        if (trimmed.contains(' ')) return false
+        
+        // Must not contain newlines
+        if (trimmed.contains('\n') || trimmed.contains('\r')) return false
+        
+        // Must contain a dot (domain separator)
+        if (!trimmed.contains('.')) return false
+        
+        // If starts with http/https, it's definitely URL-shaped
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return true
+        
+        // Check if it has a known TLD
+        val parts = trimmed.split('.')
+        if (parts.size >= 2) {
+            val tld = parts.last().lowercase()
+            if (tld in KNOWN_TLDS) return true
+        }
+        
+        // Reject common search query patterns
+        val lower = trimmed.lowercase()
+        val searchPatterns = listOf(
+            "how to", "what is", "where is", "why is", "when is",
+            "help", "support", "customer care", "contact",
+            "search", "find", "lookup"
+        )
+        if (searchPatterns.any { lower.contains(it) }) return false
+        
+        // If it looks like a domain (has dots, no spaces, reasonable length), accept it
+        return true
+    }
+
+    /**
      * Returns true if the text looks like a search query or typed text rather than
      * a committed navigation URL.
      *
@@ -418,33 +483,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
      *   - Common search patterns ("how to", "what is", etc.)
      */
     private fun isSearchQuery(text: String): Boolean {
-        val trimmed = text.trim()
-
-        // Reject if contains spaces — domains don't have spaces
-        if (trimmed.contains(' ')) return true
-
-        // Reject if contains newlines
-        if (trimmed.contains('\n') || trimmed.contains('\r')) return true
-
-        // Reject if too long — legitimate URLs are < 255 chars
-        if (trimmed.length > 255) return true
-
-        // Reject if no dot — not a valid domain
-        if (!trimmed.contains('.')) return true
-
-        // Accept if it looks like a URL with scheme
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return false
-
-        // Reject common search query patterns
-        val lower = trimmed.lowercase()
-        val searchPatterns = listOf(
-            "how to", "what is", "where is", "why is", "when is",
-            "help", "support", "customer care", "contact",
-            "search", "find", "lookup"
-        )
-        if (searchPatterns.any { lower.contains(it) }) return true
-
-        return false
+        return !isUrlShaped(text)
     }
 
     // ── URL validity gate ─────────────────────────────────────────────────────
