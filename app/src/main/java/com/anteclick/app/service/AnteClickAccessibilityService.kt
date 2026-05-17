@@ -30,10 +30,21 @@ class AnteClickAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "AnteClick"
 
-        private val MONITORED_PACKAGES = setOf(
+        // Browser packages - ONLY these trigger phishing detection
+        private val BROWSER_PACKAGES = setOf(
             "com.android.chrome",
             "org.mozilla.firefox",
             "com.sec.android.app.sbrowser",
+            "com.microsoft.emmx",           // Edge
+            "com.brave.browser",
+            "com.opera.browser",
+            "com.opera.mini.native",
+            "com.miui.hybrid",
+            "com.mi.globalbrowser"
+        )
+
+        // Messaging apps - ONLY detect when in-app browser is active
+        private val MESSAGING_PACKAGES = setOf(
             "org.telegram.messenger",
             "org.telegram.messenger.web",
             "com.whatsapp",
@@ -42,9 +53,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
             "com.google.android.gm",
             "com.twitter.android",
             "com.discord",
-            "com.snapchat.android",
-            "com.miui.hybrid",
-            "com.mi.globalbrowser"
+            "com.snapchat.android"
         )
 
         private val CHROME_URL_VIEW_IDS = listOf(
@@ -70,6 +79,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         private const val URL_DEDUP_WINDOW_MS = 5_000L
         private const val STABLE_EVENT_THROTTLE_MS = 1500L
+        private const val NAVIGATION_STABILITY_MS = 400L  // URL must be stable for 400ms
         private val HOST_REGEX = Regex("^[a-z0-9.-]+$")
 
         // Global event sequence token used to cancel stale async warning paths.
@@ -90,6 +100,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
     // URL stability state — used ONLY for navigation token invalidation
     private var lastObservedUrl: String? = null
     private var lastObservedPackage: String? = null
+    private var lastObservedTime = 0L  // Track when URL was first observed
 
     // Stable event throttle — prevents excessive processing of Chrome/Telegram repaint storms
     private var lastStableEventTime = 0L
@@ -107,14 +118,14 @@ class AnteClickAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         serviceInfo = serviceInfo.apply {
-            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED   or
-                         AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
-                         AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+            // STRICT: Only window state and content changes - NO text changes
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                         AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
             flags        = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 100L
         }
-        Log.d(TAG, "AnteClickAccessibilityService connected")
+        Log.d(TAG, "AnteClickAccessibilityService connected - STRICT mode (no TYPE_VIEW_TEXT_CHANGED)")
     }
 
     override fun onDestroy() {
@@ -133,14 +144,33 @@ class AnteClickAccessibilityService : AccessibilityService() {
         event ?: return
 
         val type = event.eventType
-        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED   &&
-            type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
-            type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) return
+        // STRICT: Only process window state and content changes
+        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            return
+        }
 
         val pkg = event.packageName?.toString() ?: return
-        if (pkg !in MONITORED_PACKAGES) return
+        
+        // Check if this is a browser or messaging app
+        val isBrowser = pkg in BROWSER_PACKAGES
+        val isMessaging = pkg in MESSAGING_PACKAGES
+        
+        if (!isBrowser && !isMessaging) {
+            return  // Not a monitored package
+        }
 
-        Log.d(TAG, "Event pkg=$pkg type=$type")
+        // For messaging apps, ONLY process if we detect a browser/WebView context
+        if (isMessaging) {
+            val className = event.className?.toString() ?: ""
+            if (!isBrowserLikeClass(className)) {
+                Log.d(TAG, "Messaging app $pkg - not in browser context (className=$className) - SKIPPED")
+                return
+            }
+            Log.d(TAG, "Messaging app $pkg - browser context detected (className=$className)")
+        }
+
+        Log.d(TAG, "Event pkg=$pkg type=${eventTypeToString(type)} isBrowser=$isBrowser isMessaging=$isMessaging")
 
         val url = extractUrl(event, pkg, latestEventSequence.get())
         if (url == null) {
@@ -150,28 +180,26 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         val now = System.currentTimeMillis()
 
-        // Increment token ONLY on real navigation (package change OR URL change)
+        // Navigation stability check: URL must be stable for NAVIGATION_STABILITY_MS
         val isNavigation = pkg != lastObservedPackage || url != lastObservedUrl
-        val eventToken = if (isNavigation) {
+        if (isNavigation) {
             lastObservedPackage = pkg
             lastObservedUrl = url
-            val newToken = latestEventSequence.incrementAndGet()
-            Log.d(TAG, "Token[navigation]=$newToken reason=url-or-package-changed")
-            newToken
-        } else {
-            // Stable event (same URL + same package) — apply throttle to prevent repaint storm processing
-            val deltaMs = now - lastStableEventTime
-            if (deltaMs < STABLE_EVENT_THROTTLE_MS) {
-                Log.d(TAG, "Stable event throttled — url=$url pkg=$pkg deltaMs=$deltaMs")
-                return
-            }
-            val currentToken = latestEventSequence.get()
-            Log.d(TAG, "Token[stable]=$currentToken reason=same-url-and-package deltaMs=$deltaMs")
-            currentToken
+            lastObservedTime = now
+            Log.d(TAG, "New navigation detected - waiting for stability: url=$url")
+            return  // Wait for next event to confirm stability
         }
 
-        // Update stable event timestamp — real navigations reset it, stable events update it
-        lastStableEventTime = now
+        // Check if URL has been stable long enough
+        val stabilityDuration = now - lastObservedTime
+        if (stabilityDuration < NAVIGATION_STABILITY_MS) {
+            Log.d(TAG, "URL not yet stable - duration=${stabilityDuration}ms (need ${NAVIGATION_STABILITY_MS}ms)")
+            return
+        }
+
+        // Increment token ONLY after URL is stable
+        val eventToken = latestEventSequence.incrementAndGet()
+        Log.d(TAG, "Token[stable-navigation]=$eventToken url=$url stabilityDuration=${stabilityDuration}ms")
 
         Log.d(TAG, "Extracted URL=$url token=$eventToken")
         Log.d(TAG, "Package=$pkg")
@@ -202,130 +230,14 @@ class AnteClickAccessibilityService : AccessibilityService() {
     private fun extractUrl(event: AccessibilityEvent, pkg: String, eventToken: Long): String? {
         val source = event.source
         try {
-            if (pkg == "com.android.chrome" && source != null) {
-                for (viewId in CHROME_URL_VIEW_IDS) {
-                    val nodes = source.findAccessibilityNodeInfosByViewId(viewId)
-                    for (node in nodes) {
-                        // Skip editable or focused address bars — user is typing, not navigating
-                        if (node.isEditable || node.isFocused) {
-                            Log.d(TAG, "Ignored editable/focused address bar viewId=$viewId")
-                            node.recycle()
-                            continue
-                        }
-
-                        val text = node.text?.toString()
-                        node.recycle()
-                        if (!text.isNullOrBlank()) {
-                            Log.d(TAG, "Chrome extraction attempt viewId=$viewId rawText=${text.take(200)} token=$eventToken")
-
-                            // Reject search queries and typed text
-                            if (isSearchQuery(text)) {
-                                Log.d(TAG, "Rejected search query: $text")
-                                continue
-                            }
-
-                            val url = firstUrlIn(text)
-                            if (url != null) {
-                                Log.d(TAG, "Chrome extracted URL=$url token=$eventToken viewId=$viewId")
-                                Log.d(TAG, "Accepted navigational URL: $url")
-                                return url
-                            }
-                            if (text.contains('.') && !text.contains(' ')) {
-                                val constructed = if (text.startsWith("http")) text else "https://$text"
-                                Log.d(TAG, "Chrome constructed URL=$constructed token=$eventToken viewId=$viewId")
-                                Log.d(TAG, "Accepted navigational URL: $constructed")
-                                return constructed
-                            }
-                        }
-                    }
-                }
+            // STRICT: For browsers, ONLY extract from address bar
+            if (pkg in BROWSER_PACKAGES) {
+                return extractFromBrowserAddressBar(source, pkg, eventToken)
             }
 
-            if (isTelegramPackage(pkg)) {
-                source?.let {
-                    val url = findUrlInBrowserLikeNode(it)
-                    if (url != null) {
-                        if (isSearchQuery(url)) {
-                            Log.d(TAG, "Rejected search query in Telegram: $url")
-                            return null
-                        }
-                        Log.d(TAG, "Accepted navigational URL in Telegram: $url")
-                        return url
-                    }
-                }
-
-                val root = rootInActiveWindow
-                if (root != null) {
-                    try {
-                        val url = findUrlInBrowserLikeNode(root)
-                        if (url != null) {
-                            if (isSearchQuery(url)) {
-                                Log.d(TAG, "Rejected search query in Telegram: $url")
-                                return null
-                            }
-                            Log.d(TAG, "Accepted navigational URL in Telegram: $url")
-                            return url
-                        }
-                    } finally {
-                        root.recycle()
-                    }
-                }
-
-                return null
-            }
-
-            for (seq in event.text) {
-                val text = seq?.toString() ?: continue
-                if (isSearchQuery(text)) {
-                    Log.d(TAG, "Rejected search query in event.text: $text")
-                    continue
-                }
-                val url = firstUrlIn(text)
-                if (url != null) {
-                    Log.d(TAG, "Accepted navigational URL: $url")
-                    return url
-                }
-            }
-
-            source?.text?.toString()?.let { text ->
-                if (isSearchQuery(text)) {
-                    Log.d(TAG, "Rejected search query in source.text: $text")
-                    return null
-                }
-                val url = firstUrlIn(text)
-                if (url != null) {
-                    Log.d(TAG, "Accepted navigational URL: $url")
-                    return url
-                }
-            }
-
-            source?.contentDescription?.toString()?.let { desc ->
-                if (isSearchQuery(desc)) {
-                    Log.d(TAG, "Rejected search query in contentDescription: $desc")
-                    return null
-                }
-                val url = firstUrlIn(desc)
-                if (url != null) {
-                    Log.d(TAG, "Accepted navigational URL: $url")
-                    return url
-                }
-            }
-
-            val root = rootInActiveWindow
-            if (root != null) {
-                try {
-                    val url = findUrlInNode(root)
-                    if (url != null) {
-                        if (isSearchQuery(url)) {
-                            Log.d(TAG, "Rejected search query in root: $url")
-                            return null
-                        }
-                        Log.d(TAG, "Accepted navigational URL: $url")
-                        return url
-                    }
-                } finally {
-                    root.recycle()
-                }
+            // STRICT: For messaging apps, ONLY extract from WebView/browser context
+            if (pkg in MESSAGING_PACKAGES) {
+                return extractFromMessagingBrowser(source, pkg, eventToken)
             }
 
             return null
@@ -334,22 +246,110 @@ class AnteClickAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun findUrlInNode(node: AccessibilityNodeInfo?): String? {
+    /**
+     * Extract URL ONLY from browser address bar - NOT from page content
+     */
+    private fun extractFromBrowserAddressBar(
+        source: AccessibilityNodeInfo?,
+        pkg: String,
+        eventToken: Long
+    ): String? {
+        source ?: return null
+
+        // Chrome-specific address bar extraction
+        if (pkg == "com.android.chrome") {
+            for (viewId in CHROME_URL_VIEW_IDS) {
+                val nodes = source.findAccessibilityNodeInfosByViewId(viewId)
+                for (node in nodes) {
+                    // CRITICAL: Skip editable or focused fields - user is typing
+                    if (node.isEditable || node.isFocused) {
+                        Log.d(TAG, "REJECTED: Editable/focused address bar (user typing) viewId=$viewId")
+                        node.recycle()
+                        continue
+                    }
+
+                    val text = node.text?.toString()
+                    node.recycle()
+                    if (!text.isNullOrBlank()) {
+                        Log.d(TAG, "Chrome address bar text: ${text.take(100)}")
+
+                        // Reject search queries
+                        if (isSearchQuery(text)) {
+                            Log.d(TAG, "REJECTED: Search query detected")
+                            continue
+                        }
+
+                        val url = firstUrlIn(text)
+                        if (url != null) {
+                            Log.d(TAG, "ACCEPTED: Chrome address bar URL=$url")
+                            return url
+                        }
+                        if (text.contains('.') && !text.contains(' ')) {
+                            val constructed = if (text.startsWith("http")) text else "https://$text"
+                            Log.d(TAG, "ACCEPTED: Chrome constructed URL=$constructed")
+                            return constructed
+                        }
+                    }
+                }
+            }
+        }
+
+        // Generic browser address bar detection
+        // Look for non-editable URL fields only
+        return findUrlInAddressBarOnly(source)
+    }
+
+    /**
+     * Extract URL ONLY from messaging app in-app browser - NOT from chat messages
+     */
+    private fun extractFromMessagingBrowser(
+        source: AccessibilityNodeInfo?,
+        pkg: String,
+        eventToken: Long
+    ): String? {
+        source ?: return null
+
+        // STRICT: Only extract from WebView/browser context
+        val url = findUrlInBrowserLikeNode(source)
+        if (url != null) {
+            Log.d(TAG, "ACCEPTED: Messaging app $pkg in-app browser URL=$url")
+            return url
+        }
+
+        Log.d(TAG, "REJECTED: No browser context found in messaging app $pkg")
+        return null
+    }
+
+    /**
+     * Find URL ONLY in address bar nodes - NOT in page content
+     */
+    private fun findUrlInAddressBarOnly(node: AccessibilityNodeInfo?): String? {
         node ?: return null
 
-        node.text?.toString()?.let { text ->
-            val url = firstUrlIn(text)
-            if (url != null) return url
+        // CRITICAL: Skip editable nodes - these are input fields
+        if (node.isEditable || node.isFocused) {
+            return null
         }
 
-        node.contentDescription?.toString()?.let { desc ->
-            val url = firstUrlIn(desc)
-            if (url != null) return url
+        // Check if this node looks like an address bar
+        val className = node.className?.toString()?.lowercase() ?: ""
+        val isAddressBarLike = className.contains("url") || 
+                               className.contains("address") ||
+                               className.contains("omnibox")
+
+        if (isAddressBarLike) {
+            node.text?.toString()?.let { text ->
+                if (!isSearchQuery(text)) {
+                    val url = firstUrlIn(text)
+                    if (url != null) return url
+                }
+            }
         }
 
-        for (i in 0 until node.childCount) {
+        // Recursively check children (limited depth)
+        for (i in 0 until minOf(node.childCount, 10)) {  // Limit depth to prevent deep traversal
             val child = node.getChild(i) ?: continue
-            val url = findUrlInNode(child)
+            val url = findUrlInAddressBarOnly(child)
             child.recycle()
             if (url != null) return url
         }
@@ -357,26 +357,40 @@ class AnteClickAccessibilityService : AccessibilityService() {
         return null
     }
 
-    private fun findUrlInBrowserLikeNode(node: AccessibilityNodeInfo?, inBrowserContext: Boolean = false): String? {
+    private fun findUrlInBrowserLikeNode(node: AccessibilityNodeInfo?, inBrowserContext: Boolean = false, depth: Int = 0): String? {
         node ?: return null
+        
+        // CRITICAL: Limit traversal depth to prevent scanning entire chat history
+        if (depth > 5) return null
 
         val currentContext = inBrowserContext || isBrowserLikeClass(node.className)
 
+        // ONLY extract URLs when in browser context
         if (currentContext) {
+            // CRITICAL: Skip editable nodes
+            if (node.isEditable || node.isFocused) {
+                return null
+            }
+
             node.text?.toString()?.let { text ->
-                val url = firstUrlIn(text)
-                if (url != null) return url
+                if (!isSearchQuery(text)) {
+                    val url = firstUrlIn(text)
+                    if (url != null) return url
+                }
             }
 
             node.contentDescription?.toString()?.let { desc ->
-                val url = firstUrlIn(desc)
-                if (url != null) return url
+                if (!isSearchQuery(desc)) {
+                    val url = firstUrlIn(desc)
+                    if (url != null) return url
+                }
             }
         }
 
-        for (i in 0 until node.childCount) {
+        // Recursively check children with depth limit
+        for (i in 0 until minOf(node.childCount, 10)) {  // Limit children to prevent deep traversal
             val child = node.getChild(i) ?: continue
-            val url = findUrlInBrowserLikeNode(child, currentContext)
+            val url = findUrlInBrowserLikeNode(child, currentContext, depth + 1)
             child.recycle()
             if (url != null) return url
         }
@@ -464,9 +478,16 @@ class AnteClickAccessibilityService : AccessibilityService() {
     private fun isBrowserLikeClass(className: CharSequence?): Boolean {
         val cls = className?.toString()?.lowercase() ?: return false
         return cls.contains("webview") ||
-            cls.contains("browser") ||
-            cls.contains("chromium") ||
-            cls.contains("customtab")
+               cls.contains("browser") ||
+               cls.contains("chromium") ||
+               cls.contains("customtab") ||
+               cls.contains("customtabs")
+    }
+
+    private fun eventTypeToString(type: Int): String = when (type) {
+        AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "WINDOW_STATE_CHANGED"
+        AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "WINDOW_CONTENT_CHANGED"
+        else -> "UNKNOWN($type)"
     }
 
     private fun inDedupWindow(
