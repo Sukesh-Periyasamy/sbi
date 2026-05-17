@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TrustShield"
+rootProject.name = "AnteClick"
 include(":app")

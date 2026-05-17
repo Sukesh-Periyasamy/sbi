@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.trustshield.app"
+    namespace = "com.anteclick.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.trustshield.app"
+        applicationId = "com.anteclick.app"
         minSdk = 31
         targetSdk = 35
         versionCode = 1

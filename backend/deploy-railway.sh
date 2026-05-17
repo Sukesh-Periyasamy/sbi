@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# TrustShield Backend - Railway Quick Deploy Script
+# AnteClick Backend - Railway Quick Deploy Script
 # This script automates the deployment to Railway
 
 set -e
 
-echo "🚀 TrustShield Backend - Railway Deployment"
+echo "🚀 AnteClick Backend - Railway Deployment"
 echo "==========================================="
 echo ""
 
@@ -77,4 +77,4 @@ echo ""
 echo "  3. Monitor logs:"
 echo "     railway logs"
 echo ""
-echo "🎉 Your TrustShield backend is live!"
+echo "🎉 Your AnteClick backend is live!"

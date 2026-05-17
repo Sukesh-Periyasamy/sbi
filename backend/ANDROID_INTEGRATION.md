@@ -2,7 +2,7 @@
 
 ## 🔗 Connecting Android App to Backend
 
-After deploying your backend, follow these steps to integrate it with the TrustShield Android app.
+After deploying your backend, follow these steps to integrate it with the AnteClick Android app.
 
 ---
 
@@ -38,13 +38,13 @@ fly secrets list
 ## Step 2: Update ThreatRepository.kt
 
 ### Location:
-`app/src/main/java/com/trustshield/app/backend/ThreatRepository.kt`
+`app/src/main/java/com/AnteClick/app/backend/ThreatRepository.kt`
 
 ### Changes:
 
 **Before:**
 ```kotlin
-private const val BASE_URL = "https://api.trustshield.app/"
+private const val BASE_URL = "https://api.AnteClick.app/"
 ```
 
 **After:**
@@ -125,10 +125,10 @@ android {
 
 **2. Update ThreatRepository.kt:**
 ```kotlin
-import com.trustshield.app.BuildConfig
+import com.AnteClick.app.BuildConfig
 
 object ThreatRepository {
-    private const val TAG = "TrustShieldBackend"
+    private const val TAG = "AnteClickBackend"
     private val BASE_URL = BuildConfig.BASE_URL
     private val API_KEY = BuildConfig.API_KEY
     
@@ -189,7 +189,7 @@ android {
 
 **3. Update ThreatRepository.kt:**
 ```kotlin
-import com.trustshield.app.BuildConfig
+import com.AnteClick.app.BuildConfig
 
 object ThreatRepository {
     private val BASE_URL = BuildConfig.BASE_URL
@@ -214,8 +214,8 @@ Run → Run 'app'
 
 **Check Logcat for:**
 ```
-D/TrustShieldBackend: Fetching reputation for sbi-login.xyz (attempt 1/3)
-D/TrustShieldBackend: Backend result: domain=sbi-login.xyz risk=HIGH_RISK confidence=96 source=backend
+D/AnteClickBackend: Fetching reputation for sbi-login.xyz (attempt 1/3)
+D/AnteClickBackend: Backend result: domain=sbi-login.xyz risk=HIGH_RISK confidence=96 source=backend
 ```
 
 ### 3. Trigger Phishing Detection
@@ -338,7 +338,7 @@ private suspend fun fetchWithRetry(domain: String): BackendThreatResponse? {
 # Gson
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.trustshield.app.models.** { *; }
+-keep class com.AnteClick.app.models.** { *; }
 
 # OkHttp
 -dontwarn okhttp3.**
@@ -414,11 +414,11 @@ fly logs
 
 **ThreatRepository.kt (final version):**
 ```kotlin
-package com.trustshield.app.backend
+package com.AnteClick.app.backend
 
 import android.util.Log
-import com.trustshield.app.BuildConfig
-import com.trustshield.app.models.BackendThreatResponse
+import com.AnteClick.app.BuildConfig
+import com.AnteClick.app.models.BackendThreatResponse
 import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -428,7 +428,7 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 object ThreatRepository {
-    private const val TAG = "TrustShieldBackend"
+    private const val TAG = "AnteClickBackend"
     private val BASE_URL = BuildConfig.BASE_URL
     private val API_KEY = BuildConfig.API_KEY
     

@@ -1,4 +1,3 @@
 <resources>
-    <style name="Theme.TrustShield" parent="android:Theme.Material.Light.NoActionBar" />
-    <string name="accessibility_service_description">TrustShield monitors browser URLs to detect phishing links before they load.</string>
+    <style name="Theme.AnteClick" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

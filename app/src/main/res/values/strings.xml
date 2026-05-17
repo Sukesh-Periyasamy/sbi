@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">AnteClick</string>
+    
+    <!-- Main Screen -->
+    <string name="dashboard_title">AnteClick Dashboard</string>
+    <string name="protection_status">Real-Time Protection Active</string>
+    <string name="protected_by">Protected by AnteClick</string>
+    
+    <!-- Threat Detection -->
+    <string name="recent_threats_title">Recently Detected Sites</string>
+    <string name="no_threats_detected">No phishing websites detected yet</string>
+    <string name="threat_detected">Phishing threat detected</string>
+    
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_label">AnteClick</string>
+    <string name="accessibility_service_description">AnteClick uses the Accessibility API only to detect dangerous phishing websites during browser and WebView navigation events so users can be warned before financial fraud occurs. No browsing history is collected or transmitted.</string>
+    <string name="accessibility_service_summary">Detects phishing websites in real-time</string>
+    
+    <!-- VPN Service -->
+    <string name="vpn_service_name">AnteClick Protection</string>
+    <string name="vpn_notification_title">AnteClick Active</string>
+    <string name="vpn_notification_text">Real-time phishing protection enabled</string>
+    
+    <!-- Warning Overlay -->
+    <string name="warning_title">⚠️ Phishing Warning</string>
+    <string name="warning_message">AnteClick has detected this website may be attempting financial fraud.</string>
+    <string name="warning_proceed">I Understand the Risk</string>
+    <string name="warning_go_back">Go Back to Safety</string>
+    
+    <!-- Permissions -->
+    <string name="permission_accessibility_title">Enable Accessibility Service</string>
+    <string name="permission_accessibility_description">AnteClick needs accessibility permission to detect phishing websites in your browser.</string>
+    <string name="permission_vpn_title">Enable VPN Protection</string>
+    <string name="permission_vpn_description">AnteClick uses a local VPN to analyze network traffic for phishing threats.</string>
+    <string name="permission_notification_title">Enable Notifications</string>
+    <string name="permission_notification_description">AnteClick will notify you when threats are detected.</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">AnteClick Settings</string>
+    <string name="settings_protection">Protection Settings</string>
+    <string name="settings_about">About AnteClick</string>
+    
+    <!-- About -->
+    <string name="about_version">Version %s</string>
+    <string name="about_description">AnteClick provides real-time protection against financial phishing attacks.</string>
+    
+    <!-- Notifications -->
+    <string name="notification_channel_name">AnteClick Protection</string>
+    <string name="notification_channel_description">Phishing detection alerts</string>
+    <string name="notification_threat_title">Phishing Threat Blocked</string>
+    <string name="notification_threat_text">AnteClick blocked a dangerous website</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Welcome to AnteClick</string>
+    <string name="onboarding_description">Real-time protection against financial phishing attacks</string>
+    <string name="onboarding_how_it_works">How AnteClick Works</string>
+    <string name="onboarding_step1">Monitors browser navigation</string>
+    <string name="onboarding_step2">Detects phishing websites</string>
+    <string name="onboarding_step3">Warns you before fraud occurs</string>
+    
+    <!-- Privacy -->
+    <string name="privacy_title">Privacy &amp; Security</string>
+    <string name="privacy_description">AnteClick only analyzes URLs for phishing detection. No browsing history is stored or transmitted.</string>
+    <string name="privacy_data_collection">What data is collected?</string>
+    <string name="privacy_data_answer">Only suspicious website domains are sent to our backend for verification. Safe websites never leave your device.</string>
+    
+    <!-- Errors -->
+    <string name="error_generic">An error occurred</string>
+    <string name="error_network">Network connection failed</string>
+    <string name="error_permission_denied">Permission denied</string>
+</resources>

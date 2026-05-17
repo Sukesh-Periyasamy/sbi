@@ -1,5 +1,5 @@
 """
-Production Verification Test Suite for TrustShield Backend
+Production Verification Test Suite for AnteClick Backend
 
 Tests all critical production requirements:
 1. Health check endpoints

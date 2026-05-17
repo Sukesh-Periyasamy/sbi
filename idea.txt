@@ -1,8 +1,8 @@
-# TrustShield — Final MVP Architecture Plan
+# AnteClick — Final MVP Architecture Plan
 
 ## Project Overview
 
-TrustShield is an Android-native contextual financial threat detection system designed to identify suspicious banking links, phishing pages, fake payment URLs, and malicious APK delivery attempts during real browsing activity.
+AnteClick is an Android-native contextual financial threat detection system designed to identify suspicious banking links, phishing pages, fake payment URLs, and malicious APK delivery attempts during real browsing activity.
 
 The system uses:
 
@@ -376,6 +376,6 @@ User prevented from entering credentials
 
 # FINAL POSITIONING
 
-TrustShield is an Android-native contextual financial threat detection system that identifies suspicious banking links during real browsing activity using event-driven URL extraction, lightweight semantic phishing analysis, backend verification, and APK fraud detection.
+AnteClick is an Android-native contextual financial threat detection system that identifies suspicious banking links during real browsing activity using event-driven URL extraction, lightweight semantic phishing analysis, backend verification, and APK fraud detection.
 
 The architecture avoids browser replacement, packet interception, continuous traffic monitoring, and VPN dependency while remaining compatible with modern Android browsers and encrypted network protocols.

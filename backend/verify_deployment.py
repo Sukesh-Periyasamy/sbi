@@ -5,7 +5,7 @@ Production Backend Verification Script
 Tests deployed backend for correctness and performance.
 
 Usage:
-    python verify_deployment.py https://api.trustshield.app YOUR_API_KEY
+    python verify_deployment.py https://api.AnteClick.app YOUR_API_KEY
 """
 import sys
 import time
@@ -318,13 +318,13 @@ def test_url_normalization(base_url: str, api_key: str) -> bool:
 def main():
     if len(sys.argv) < 3:
         print(f"{Colors.RED}Usage: python verify_deployment.py <BASE_URL> <API_KEY>{Colors.END}")
-        print(f"Example: python verify_deployment.py https://api.trustshield.app your-api-key")
+        print(f"Example: python verify_deployment.py https://api.AnteClick.app your-api-key")
         sys.exit(1)
     
     base_url = sys.argv[1].rstrip('/')
     api_key = sys.argv[2]
     
-    print(f"\n{Colors.BLUE}TrustShield Backend Verification{Colors.END}")
+    print(f"\n{Colors.BLUE}AnteClick Backend Verification{Colors.END}")
     print(f"Base URL: {base_url}")
     print(f"API Key: {api_key[:8]}...{api_key[-4:]}")
     

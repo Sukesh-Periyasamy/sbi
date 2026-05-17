@@ -1,8 +1,8 @@
-# TrustShield — Final UI/UX Design Reference Document
+# AnteClick — Final UI/UX Design Reference Document
 
 # Design Vision
 
-TrustShield should feel like:
+AnteClick should feel like:
 
 * a modern fintech security platform
 * a trusted banking protection layer
@@ -40,7 +40,7 @@ The design language should combine:
 
 ## Emotional Goal
 
-When users open TrustShield, they should feel:
+When users open AnteClick, they should feel:
 
 ```plaintext
 “I am protected.”
@@ -273,7 +273,7 @@ Shows:
 Example:
 
 ```plaintext
-Protected by TrustShield
+Protected by AnteClick
 3 phishing attempts blocked today
 ```
 
@@ -569,7 +569,7 @@ Aggressive Cybersecurity Monitoring
 
 # Final Design Principles
 
-TrustShield should always feel:
+AnteClick should always feel:
 
 * modern
 * trustworthy

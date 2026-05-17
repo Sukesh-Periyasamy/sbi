@@ -1,4 +1,4 @@
-# TrustShield Backend - Deployment Platform Comparison
+# AnteClick Backend - Deployment Platform Comparison
 
 ## 🏆 Recommended: Railway
 
@@ -23,7 +23,7 @@
 - **Free tier:** $5 credit/month (500 hours)
 - **Hobby:** $5/month (unlimited hours)
 - **Pro:** $20/month (more resources)
-- **Estimated cost for TrustShield:** $5-10/month
+- **Estimated cost for AnteClick:** $5-10/month
 
 ### Deployment Steps
 ```bash
@@ -81,7 +81,7 @@ railway domain
 - **Free tier:** 750 hours/month (spins down)
 - **Starter:** $7/month (always-on)
 - **Standard:** $25/month (more resources)
-- **Estimated cost for TrustShield:** Free or $7/month
+- **Estimated cost for AnteClick:** Free or $7/month
 
 ### Deployment Steps
 ```bash
@@ -124,7 +124,7 @@ git push origin main
 - **Free tier:** 3 shared VMs, 160GB bandwidth
 - **Paid:** $1.94/month per VM (shared-cpu-1x)
 - **Redis:** Use Upstash (free tier) or Fly Redis ($2/month)
-- **Estimated cost for TrustShield:** Free or $5-10/month
+- **Estimated cost for AnteClick:** Free or $5-10/month
 
 ### Deployment Steps
 ```bash
@@ -182,7 +182,7 @@ fly scale count 2
 - **Free tier:** 2M requests/month, 360K GB-seconds
 - **Paid:** $0.40 per million requests
 - **Redis:** Memorystore ($50/month) or Upstash (free)
-- **Estimated cost for TrustShield:** Free tier sufficient
+- **Estimated cost for AnteClick:** Free tier sufficient
 
 ### Deployment Steps
 ```bash
@@ -195,11 +195,11 @@ gcloud config set project YOUR_PROJECT_ID
 
 # 3. Build image
 cd backend
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/trustshield-backend
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/AnteClick-backend
 
 # 4. Deploy
-gcloud run deploy trustshield-backend \
-  --image gcr.io/YOUR_PROJECT_ID/trustshield-backend \
+gcloud run deploy AnteClick-backend \
+  --image gcr.io/YOUR_PROJECT_ID/AnteClick-backend \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
@@ -242,7 +242,7 @@ gcloud run deploy trustshield-backend \
 - **DigitalOcean:** $6/month (1GB RAM)
 - **Linode:** $5/month (1GB RAM)
 - **Vultr:** $6/month (1GB RAM)
-- **Estimated cost for TrustShield:** $5-10/month
+- **Estimated cost for AnteClick:** $5-10/month
 
 ### Deployment Steps
 ```bash
@@ -256,8 +256,8 @@ curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
 
 # 4. Clone repo
-git clone https://github.com/yourusername/trustshield.git
-cd trustshield/backend
+git clone https://github.com/yourusername/AnteClick.git
+cd AnteClick/backend
 
 # 5. Create .env
 nano .env
@@ -333,7 +333,7 @@ apt install nginx certbot python3-certbot-nginx
 
 ## 🏁 Final Recommendation
 
-### For TrustShield MVP Launch: **Railway** 🏆
+### For AnteClick MVP Launch: **Railway** 🏆
 
 **Why:**
 1. **Fastest deployment** - Deploy in 5 minutes

@@ -1,5 +1,5 @@
 """
-Logging configuration for TrustShield Backend
+Logging configuration for AnteClick Backend
 """
 import logging
 import sys

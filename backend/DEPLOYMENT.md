@@ -1,4 +1,4 @@
-# TrustShield Backend - Deployment Guide
+# AnteClick Backend - Deployment Guide
 
 ## 📋 Table of Contents
 1. [Quick Start](#quick-start)
@@ -98,7 +98,7 @@ docker-compose down
 
 1. **Build image:**
 ```bash
-docker build -t trustshield-backend .
+docker build -t AnteClick-backend .
 ```
 
 2. **Run container:**
@@ -107,7 +107,7 @@ docker run -d \
   -p 8000:8000 \
   -e API_KEY=your-api-key \
   -e REDIS_URL=redis://host.docker.internal:6379 \
-  trustshield-backend
+  AnteClick-backend
 ```
 
 ---
@@ -245,7 +245,7 @@ railway domain
 ```yaml
 services:
   - type: web
-    name: trustshield-backend
+    name: AnteClick-backend
     env: docker
     plan: starter
     healthCheckPath: /health
@@ -255,13 +255,13 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: trustshield-redis
+          name: AnteClick-redis
           property: connectionString
       - key: ENVIRONMENT
         value: production
 
 databases:
-  - name: trustshield-redis
+  - name: AnteClick-redis
     plan: starter
 ```
 
@@ -361,13 +361,13 @@ gcloud config set project YOUR_PROJECT_ID
 3. **Build and push image:**
 ```bash
 cd backend
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/trustshield-backend
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/AnteClick-backend
 ```
 
 4. **Deploy:**
 ```bash
-gcloud run deploy trustshield-backend \
-  --image gcr.io/YOUR_PROJECT_ID/trustshield-backend \
+gcloud run deploy AnteClick-backend \
+  --image gcr.io/YOUR_PROJECT_ID/AnteClick-backend \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
@@ -383,7 +383,7 @@ gcloud run deploy trustshield-backend \
 # Get Redis URL and add to Cloud Run
 
 # Option 2: Use Google Memorystore
-gcloud redis instances create trustshield-redis \
+gcloud redis instances create AnteClick-redis \
   --size=1 \
   --region=us-central1
 ```
@@ -429,8 +429,8 @@ apt install docker-compose-plugin
 
 5. **Clone repo:**
 ```bash
-git clone https://github.com/yourusername/trustshield.git
-cd trustshield/backend
+git clone https://github.com/yourusername/AnteClick.git
+cd AnteClick/backend
 ```
 
 6. **Create .env:**
@@ -449,12 +449,12 @@ docker-compose -f docker-compose.prod.yml up -d
 apt install nginx certbot python3-certbot-nginx
 
 # Create Nginx config
-nano /etc/nginx/sites-available/trustshield
+nano /etc/nginx/sites-available/AnteClick
 
 # Add:
 server {
     listen 80;
-    server_name api.trustshield.app;
+    server_name api.AnteClick.app;
     
     location / {
         proxy_pass http://localhost:8000;
@@ -464,12 +464,12 @@ server {
 }
 
 # Enable site
-ln -s /etc/nginx/sites-available/trustshield /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/AnteClick /etc/nginx/sites-enabled/
 nginx -t
 systemctl restart nginx
 
 # Get SSL certificate
-certbot --nginx -d api.trustshield.app
+certbot --nginx -d api.AnteClick.app
 ```
 
 ---
@@ -490,7 +490,7 @@ ENVIRONMENT=production
 LOG_LEVEL=INFO
 RATE_LIMIT_PER_MINUTE=60
 RATE_LIMIT_PER_HOUR=1000
-ALLOWED_ORIGINS=https://trustshield.app
+ALLOWED_ORIGINS=https://AnteClick.app
 WORKERS=2
 ```
 
@@ -561,7 +561,7 @@ railway logs
 fly logs
 
 # Cloud Run
-gcloud run services logs read trustshield-backend
+gcloud run services logs read AnteClick-backend
 ```
 
 ### Metrics
@@ -633,7 +633,7 @@ redis-cli -u $REDIS_URL ping
 **Fix:**
 ```bash
 # Use Python 3.11
-docker build --build-arg PYTHON_VERSION=3.11 -t trustshield-backend .
+docker build --build-arg PYTHON_VERSION=3.11 -t AnteClick-backend .
 
 # Clear Docker cache
 docker system prune -a
@@ -678,7 +678,7 @@ For issues or questions:
 
 ## 🎉 Success!
 
-Your TrustShield backend is now deployed and ready for production!
+Your AnteClick backend is now deployed and ready for production!
 
 **Next steps:**
 1. Update Android app BASE_URL to your deployed API

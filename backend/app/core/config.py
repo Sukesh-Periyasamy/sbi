@@ -1,5 +1,5 @@
 """
-Core configuration for TrustShield Backend API
+Core configuration for AnteClick Backend API
 """
 from pydantic_settings import BaseSettings
 from typing import List

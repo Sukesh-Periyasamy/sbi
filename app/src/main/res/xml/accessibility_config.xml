@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    AccessibilityService config for TrustShield.
+    AccessibilityService config for AnteClick.
 
     WHY no packageNames filter here:
     Android's XML packageNames filter is applied at the system level before events

@@ -1,4 +1,4 @@
-# TrustShield Backend - Quick Deployment Guide
+# AnteClick Backend - Quick Deployment Guide
 
 **Time to Deploy:** 15-30 minutes  
 **Recommended Platform:** Railway  
@@ -115,7 +115,7 @@ Railway will automatically redeploy with new environment variables.
 
 In Railway dashboard, your service will have a URL like:
 ```
-https://trustshield-backend-production.up.railway.app
+https://AnteClick-backend-production.up.railway.app
 ```
 
 ### 4.2 Test Health Check
@@ -171,11 +171,11 @@ Should show: `✓ All tests passed! Backend is production ready.`
 
 ### 5.1 Update Backend URL
 
-Edit `app/src/main/java/com/trustshield/app/backend/ThreatRepository.kt`:
+Edit `app/src/main/java/com/AnteClick/app/backend/ThreatRepository.kt`:
 
 ```kotlin
 // Change this line:
-private const val BASE_URL = "https://api.trustshield.app/"
+private const val BASE_URL = "https://api.AnteClick.app/"
 
 // To your Railway URL:
 private const val BASE_URL = "https://your-backend-url.railway.app/"

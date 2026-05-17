@@ -302,11 +302,11 @@ To integrate OpenPhish into the backend:
 5. Test:
 
     # Check feed loaded
-    curl https://api.trustshield.app/openphish/stats
+    curl https://api.AnteClick.app/openphish/stats
     
     # Test phishing detection
     curl -H "X-API-Key: key" \
-      "https://api.trustshield.app/analyze?domain=known-phishing.xyz"
+      "https://api.AnteClick.app/analyze?domain=known-phishing.xyz"
 
 6. Monitor:
 

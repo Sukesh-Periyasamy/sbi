@@ -45,5 +45,5 @@ def test_root_endpoint(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     
-    assert data["service"] == "TrustShield Backend API"
+    assert data["service"] == "AnteClick Backend API"
     assert data["version"] == "1.0.0"

@@ -1,7 +1,7 @@
-# TrustShield Backend - Railway Quick Deploy Script (Windows)
+# AnteClick Backend - Railway Quick Deploy Script (Windows)
 # This script automates the deployment to Railway
 
-Write-Host "🚀 TrustShield Backend - Railway Deployment" -ForegroundColor Cyan
+Write-Host "🚀 AnteClick Backend - Railway Deployment" -ForegroundColor Cyan
 Write-Host "===========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -73,4 +73,4 @@ Write-Host ""
 Write-Host "  3. Monitor logs:" -ForegroundColor White
 Write-Host "     railway logs" -ForegroundColor Gray
 Write-Host ""
-Write-Host "🎉 Your TrustShield backend is live!" -ForegroundColor Green
+Write-Host "🎉 Your AnteClick backend is live!" -ForegroundColor Green

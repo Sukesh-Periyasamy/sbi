@@ -1,4 +1,4 @@
-# TrustShield Backend - Complete Summary
+# AnteClick Backend - Complete Summary
 
 ## 🎉 What You Have Now
 
@@ -108,7 +108,7 @@ Analyze domain for phishing threats.
 **Request:**
 ```bash
 curl -H "X-API-Key: your-api-key" \
-  "https://api.trustshield.app/analyze?domain=sbi-login.xyz"
+  "https://api.AnteClick.app/analyze?domain=sbi-login.xyz"
 ```
 
 **Response:**
@@ -224,7 +224,7 @@ done
 
 ```kotlin
 // Before
-private const val BASE_URL = "https://api.trustshield.app/"
+private const val BASE_URL = "https://api.AnteClick.app/"
 
 // After (replace with your deployed URL)
 private const val BASE_URL = "https://your-railway-app.up.railway.app/"
@@ -434,7 +434,7 @@ curl https://your-app.up.railway.app/health
 
 ## 🎉 You're Done!
 
-Your TrustShield backend is **production-ready** and deployed!
+Your AnteClick backend is **production-ready** and deployed!
 
 **What you achieved:**
 - ✅ Built a scalable FastAPI backend
@@ -460,4 +460,4 @@ Need help?
 
 ---
 
-**Built with ❤️ for TrustShield MVP Launch** 🚀
+**Built with ❤️ for AnteClick MVP Launch** 🚀

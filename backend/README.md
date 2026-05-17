@@ -1,6 +1,6 @@
-# TrustShield Backend API
+# AnteClick Backend API
 
-Production-ready FastAPI backend for TrustShield phishing detection Android app.
+Production-ready FastAPI backend for AnteClick phishing detection Android app.
 
 ## 🚀 Features
 
@@ -150,7 +150,7 @@ All requests require `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: your-api-key" \
-  "https://api.trustshield.app/analyze?domain=test.com"
+  "https://api.AnteClick.app/analyze?domain=test.com"
 ```
 
 ### Generate Secure API Key
@@ -165,7 +165,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ### CORS
 Configure allowed origins in `.env`:
 ```env
-ALLOWED_ORIGINS=https://trustshield.app,https://api.trustshield.app
+ALLOWED_ORIGINS=https://AnteClick.app,https://api.AnteClick.app
 ```
 
 ## 📊 Monitoring
@@ -318,7 +318,7 @@ redis-cli -u $REDIS_URL ping
 
 ## 📄 License
 
-This project is part of TrustShield - Banking Phishing Detection System.
+This project is part of AnteClick - Banking Phishing Detection System.
 
 ## 🆘 Support
 
@@ -342,4 +342,4 @@ For issues or questions:
 
 ---
 
-**Built with ❤️ for TrustShield MVP Launch**
+**Built with ❤️ for AnteClick MVP Launch**

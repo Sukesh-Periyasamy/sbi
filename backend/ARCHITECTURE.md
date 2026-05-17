@@ -1,10 +1,10 @@
-# TrustShield Backend - Architecture
+# AnteClick Backend - Architecture
 
 ## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        TrustShield System                        │
+│                        AnteClick System                        │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐

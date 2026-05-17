@@ -1,4 +1,4 @@
-# Git Push Guide - TrustShield Backend
+# Git Push Guide - AnteClick Backend
 
 ## Quick Commands (Copy-Paste Ready)
 
@@ -15,10 +15,10 @@ git init
 git add .
 
 # Commit
-git commit -m "TrustShield backend - production ready v1.0"
+git commit -m "AnteClick backend - production ready v1.0"
 
 # Create repository on GitHub first, then:
-git remote add origin https://github.com/YOUR_USERNAME/trustshield-backend.git
+git remote add origin https://github.com/YOUR_USERNAME/AnteClick-backend.git
 
 # Push to GitHub
 git push -u origin main
@@ -34,7 +34,7 @@ cd c:\AndroidProjects\sbi\backend
 git add .
 
 # Commit
-git commit -m "TrustShield backend - production ready v1.0"
+git commit -m "AnteClick backend - production ready v1.0"
 
 # Push to GitHub
 git push
@@ -87,7 +87,7 @@ Should show files in green (staged for commit).
 ### Step 4: Commit Changes
 
 ```bash
-git commit -m "TrustShield backend - production ready v1.0"
+git commit -m "AnteClick backend - production ready v1.0"
 ```
 
 **Output:** Shows number of files changed and insertions.
@@ -99,8 +99,8 @@ git commit -m "TrustShield backend - production ready v1.0"
 1. Go to https://github.com
 2. Click "+" → "New repository"
 3. Fill in:
-   - **Repository name:** `trustshield-backend`
-   - **Description:** `Production backend for TrustShield phishing detection app`
+   - **Repository name:** `AnteClick-backend`
+   - **Description:** `Production backend for AnteClick phishing detection app`
    - **Visibility:** Private (recommended) or Public
    - **DO NOT** initialize with README, .gitignore, or license
 4. Click "Create repository"
@@ -112,7 +112,7 @@ git commit -m "TrustShield backend - production ready v1.0"
 Copy the commands from GitHub (they'll look like this):
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/trustshield-backend.git
+git remote add origin https://github.com/YOUR_USERNAME/AnteClick-backend.git
 git branch -M main
 git push -u origin main
 ```
@@ -121,7 +121,7 @@ git push -u origin main
 
 ```bash
 # Add remote
-git remote add origin https://github.com/YOUR_USERNAME/trustshield-backend.git
+git remote add origin https://github.com/YOUR_USERNAME/AnteClick-backend.git
 
 # Rename branch to main (if needed)
 git branch -M main
@@ -136,7 +136,7 @@ git push -u origin main
 
 Go to your GitHub repository URL:
 ```
-https://github.com/YOUR_USERNAME/trustshield-backend
+https://github.com/YOUR_USERNAME/AnteClick-backend
 ```
 
 You should see all your backend files.
@@ -210,7 +210,7 @@ git init
 git remote remove origin
 
 # Add new remote
-git remote add origin https://github.com/YOUR_USERNAME/trustshield-backend.git
+git remote add origin https://github.com/YOUR_USERNAME/AnteClick-backend.git
 ```
 
 ---
@@ -251,7 +251,7 @@ cat ~/.ssh/id_ed25519.pub
 # Add to GitHub: Settings → SSH and GPG keys → New SSH key
 
 # Change remote to SSH
-git remote set-url origin git@github.com:YOUR_USERNAME/trustshield-backend.git
+git remote set-url origin git@github.com:YOUR_USERNAME/AnteClick-backend.git
 
 # Push
 git push
@@ -288,9 +288,9 @@ git push
 1. Go to https://render.com
 2. Click "New +" → "Web Service"
 3. Connect GitHub account
-4. Select `trustshield-backend` repository
+4. Select `AnteClick-backend` repository
 5. Configure:
-   - **Name:** `trustshield-backend`
+   - **Name:** `AnteClick-backend`
    - **Branch:** `main`
    - **Build Command:** Auto-detected from Dockerfile
    - **Start Command:** Auto-detected from Dockerfile

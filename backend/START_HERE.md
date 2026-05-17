@@ -1,8 +1,8 @@
-# 🎉 TrustShield Backend - COMPLETE!
+# 🎉 AnteClick Backend - COMPLETE!
 
 ## What You Just Built
 
-A **production-ready FastAPI backend** for TrustShield phishing detection with:
+A **production-ready FastAPI backend** for AnteClick phishing detection with:
 
 ✅ Advanced threat scoring (16 heuristics)  
 ✅ Redis caching (10-min TTL)  
@@ -110,7 +110,7 @@ Analyze domain for phishing threats.
 **Example:**
 ```bash
 curl -H "X-API-Key: your-key" \
-  "https://api.trustshield.app/analyze?domain=sbi-login.xyz"
+  "https://api.AnteClick.app/analyze?domain=sbi-login.xyz"
 ```
 
 **Response:**
@@ -216,7 +216,7 @@ private val httpClient: OkHttpClient = OkHttpClient.Builder()
 
 ```bash
 # Check Android logs
-adb logcat | grep TrustShieldBackend
+adb logcat | grep AnteClickBackend
 
 # Expected:
 # Backend result: domain=sbi-login.xyz risk=HIGH_RISK confidence=96
@@ -369,7 +369,7 @@ railway logs
 
 **Cost:** $5-10/month (Railway)
 
-**Result:** Production-ready backend for TrustShield MVP! 🚀
+**Result:** Production-ready backend for AnteClick MVP! 🚀
 
 ---
 
@@ -448,7 +448,7 @@ Need help?
 
 ## 🚀 Ready to Launch!
 
-Your TrustShield backend is **production-ready** and ready to deploy!
+Your AnteClick backend is **production-ready** and ready to deploy!
 
 **Deploy now:**
 ```bash
@@ -460,10 +460,10 @@ cd backend
 
 **Cost:** $5-10/month
 
-**Result:** Stable, scalable, secure backend for TrustShield MVP! 🎉
+**Result:** Stable, scalable, secure backend for AnteClick MVP! 🎉
 
 ---
 
-**Built with ❤️ for TrustShield MVP Launch**
+**Built with ❤️ for AnteClick MVP Launch**
 
 **Questions? Check the docs or run `pytest -v` to verify everything works!**

@@ -1,4 +1,4 @@
-# TrustShield Backend - Final Deployment Checklist
+# AnteClick Backend - Final Deployment Checklist
 
 **Date:** 2024-01-15  
 **Status:** ✅ READY FOR PRODUCTION DEPLOYMENT  
@@ -178,7 +178,7 @@ Output: xn--pple-43d.com ✅
    - All backend calls are async (Dispatchers.IO)
 
 **Code Locations:**
-- Android: `app/src/main/java/com/trustshield/app/backend/ThreatRepository.kt`
+- Android: `app/src/main/java/com/AnteClick/app/backend/ThreatRepository.kt`
 - Backend: `app/api/analyze.py`
 
 ---

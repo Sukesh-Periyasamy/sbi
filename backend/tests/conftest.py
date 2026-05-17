@@ -1,5 +1,5 @@
 """
-Test configuration for TrustShield Backend
+Test configuration for AnteClick Backend
 """
 import pytest
 import asyncio

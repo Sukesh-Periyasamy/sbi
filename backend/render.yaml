@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: trustshield-backend
+    name: AnteClick-backend
     env: docker
     plan: starter
     healthCheckPath: /health
@@ -12,7 +12,7 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: trustshield-redis
+          name: AnteClick-redis
           property: connectionString
       - key: ENVIRONMENT
         value: production
@@ -26,6 +26,6 @@ services:
         value: "*"
 
 databases:
-  - name: trustshield-redis
+  - name: AnteClick-redis
     plan: starter
     ipAllowList: []

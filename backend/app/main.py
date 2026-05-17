@@ -1,5 +1,5 @@
 """
-TrustShield Backend API - Main Application
+AnteClick Backend API - Main Application
 """
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +23,7 @@ limiter = Limiter(key_func=get_remote_address)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
-    logger.info("Starting TrustShield Backend API")
+    logger.info("Starting AnteClick Backend API")
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Redis URL: {settings.redis_url}")
     
@@ -33,14 +33,14 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down TrustShield Backend API")
+    logger.info("Shutting down AnteClick Backend API")
     await cache.disconnect()
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="TrustShield Backend API",
-    description="Production backend for TrustShield phishing detection",
+    title="AnteClick Backend API",
+    description="Production backend for AnteClick phishing detection",
     version="1.0.0",
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None,
@@ -85,7 +85,7 @@ app.include_router(health.router, tags=["Health"])
 async def root():
     """Root endpoint"""
     return {
-        "service": "TrustShield Backend API",
+        "service": "AnteClick Backend API",
         "version": "1.0.0",
         "status": "operational",
         "docs": "/docs" if not settings.is_production else "disabled in production"
