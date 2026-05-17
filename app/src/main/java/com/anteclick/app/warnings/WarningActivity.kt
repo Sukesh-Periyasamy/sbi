@@ -69,19 +69,19 @@ import com.anteclick.app.ui.theme.AnteClickType
 class WarningActivity : ComponentActivity() {
 
     companion object {
-        private const val TAG              = "TrustShield"
+        private const val TAG              = "AnteClick"
         private const val EXTRA_URL        = "extra_url"
         private const val EXTRA_SCORE      = "extra_score"
         private const val EXTRA_VERDICT    = "extra_verdict"
         private const val EXTRA_REASONS    = "extra_reasons"
         private const val EXTRA_SOURCE     = "extra_source"
         private const val EXTRA_CONFIDENCE = "extra_confidence"
-        private const val NOTIF_CHANNEL_ID = "trustshield_phishing_alerts"
+        private const val NOTIF_CHANNEL_ID = "anteclick_phishing_alerts"
         private const val NOTIF_ID         = 1001
 
         /**
          * Primary launch path — called from GatewayActivity and
-         * TrustShieldAccessibilityService.
+         * AnteClickAccessibilityService.
          *
          * FLAG_ACTIVITY_NEW_TASK   — mandatory when context is not an Activity
          * FLAG_ACTIVITY_CLEAR_TOP  — bring existing instance to front with new intent
@@ -166,7 +166,7 @@ class WarningActivity : ComponentActivity() {
                     "Phishing Alerts",
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
-                    description = "TrustShield phishing detection alerts"
+                    description = "AnteClick phishing detection alerts"
                     enableVibration(true)
                 }
             )
@@ -604,7 +604,7 @@ private fun ProtectionFooter() {
         Text(text = "🛡", fontSize = 14.sp)
         Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text  = "Protected by TrustShield",
+            text  = "Protected by AnteClick",
             style = AnteClickType.caption,
             color = AnteClickColors.SecondaryText
         )

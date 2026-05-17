@@ -3,7 +3,7 @@ package com.anteclick.app.session
 import android.content.Context
 import android.util.Log
 import com.anteclick.app.scoring.ThreatVerdict
-import com.anteclick.app.service.TrustShieldAccessibilityService
+import com.anteclick.app.service.AnteClickAccessibilityService
 import com.anteclick.app.warnings.DetectionSource
 import com.anteclick.app.warnings.OverlayWarningManager
 import com.anteclick.app.warnings.ThreatWarning
@@ -57,7 +57,7 @@ import kotlinx.coroutines.sync.withLock
  */
 object SessionManager {
 
-    private const val TAG                  = "TrustShield"
+    private const val TAG                  = "AnteClick"
     private const val CORRELATION_WINDOW_MS = 10_000L   // 10 s
     private const val SESSION_SUPPRESS_MS   = 30_000L   // 30 s
     private const val MAX_PENDING_EVENTS    = 50
@@ -148,10 +148,10 @@ object SessionManager {
 
                 if (session.verdict == ThreatVerdict.HIGH_RISK) {
                     val token = accessibilityEventToken(event, partner)
-                    if (token != null && !TrustShieldAccessibilityService.isEventSequenceActive(token)) {
+                    if (token != null && !AnteClickAccessibilityService.isEventSequenceActive(token)) {
                         Log.d(
                             TAG,
-                            "Skipping stale correlated warning for: $domain popupToken=$token activeToken=${TrustShieldAccessibilityService.currentEventSequence()} reason=pre-emit-check"
+                            "Skipping stale correlated warning for: $domain popupToken=$token activeToken=${AnteClickAccessibilityService.currentEventSequence()} reason=pre-emit-check"
                         )
                         return
                     }
@@ -237,10 +237,10 @@ object SessionManager {
     // ── Warning emission ──────────────────────────────────────────────────────
 
     private fun emitWarning(context: Context, session: CorrelatedSession, eventToken: Long?) {
-        if (eventToken != null && !TrustShieldAccessibilityService.isEventSequenceActive(eventToken)) {
+        if (eventToken != null && !AnteClickAccessibilityService.isEventSequenceActive(eventToken)) {
             Log.d(
                 TAG,
-                "Skipping stale correlated warning at launch for: ${session.domain} popupToken=$eventToken activeToken=${TrustShieldAccessibilityService.currentEventSequence()} reason=launch-check"
+                "Skipping stale correlated warning at launch for: ${session.domain} popupToken=$eventToken activeToken=${AnteClickAccessibilityService.currentEventSequence()} reason=launch-check"
             )
             return
         }
@@ -256,7 +256,7 @@ object SessionManager {
                 confidence = session.confidence
             ),
             popupToken = eventToken,
-            tokenProvider = { TrustShieldAccessibilityService.currentEventSequence() }
+            tokenProvider = { AnteClickAccessibilityService.currentEventSequence() }
         )
     }
 
