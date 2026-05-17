@@ -39,6 +39,10 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     
+    private companion object {
+        private const val TAG = "AnteClick"
+    }
+    
     // Native Android permission launcher for POST_NOTIFICATIONS
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -46,6 +50,9 @@ class MainActivity : ComponentActivity() {
         // Permission result handled automatically
         // No custom UI needed
     }
+    
+    // State holder for UI refresh
+    private var refreshTrigger by mutableStateOf(0)
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,22 +68,65 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = AnteClickColors.Background
                 ) {
-                    DashboardScreen()
+                    DashboardScreen(refreshTrigger)
                 }
             }
         }
     }
+    
+    override fun onResume() {
+        super.onResume()
+        // Trigger UI refresh when returning from Accessibility Settings
+        refreshTrigger++
+        android.util.Log.d(TAG, "onResume: Refreshing accessibility state (trigger=$refreshTrigger)")
+    }
 }
 
-// Check if Accessibility Service is enabled
+// Check if Accessibility Service is enabled (manufacturer-safe implementation)
 fun isAccessibilityServiceEnabled(context: Context): Boolean {
-    val service = "${context.packageName}/.service.AnteClickAccessibilityService"
-    val enabledServices = Settings.Secure.getString(
-        context.contentResolver,
-        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-    ) ?: return false
-    
-    return enabledServices.contains(service)
+    try {
+        // Get the ComponentName for our accessibility service
+        val expectedComponentName = android.content.ComponentName(
+            context,
+            com.anteclick.app.service.AnteClickAccessibilityService::class.java
+        )
+        
+        // Get the list of enabled accessibility services from Settings
+        val enabledServicesString = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        
+        if (enabledServicesString.isNullOrEmpty()) {
+            android.util.Log.d("AnteClick", "Accessibility check: No services enabled")
+            return false
+        }
+        
+        android.util.Log.d("AnteClick", "Enabled services: $enabledServicesString")
+        
+        // Parse the colon-separated list of enabled services
+        val enabledServices = enabledServicesString.split(":")
+        
+        // Check if our service is in the list using ComponentName comparison
+        val isEnabled = enabledServices.any { serviceString ->
+            val componentName = android.content.ComponentName.unflattenFromString(serviceString)
+            val matches = componentName != null && 
+                          componentName.packageName.equals(expectedComponentName.packageName, ignoreCase = true) &&
+                          componentName.className.equals(expectedComponentName.className, ignoreCase = true)
+            
+            if (matches) {
+                android.util.Log.d("AnteClick", "Service match found: $serviceString")
+            }
+            matches
+        }
+        
+        android.util.Log.d("AnteClick", "Accessibility service enabled: $isEnabled")
+        return isEnabled
+        
+    } catch (e: Exception) {
+        android.util.Log.e("AnteClick", "Error checking accessibility service", e)
+        return false
+    }
 }
 
 // Open Android Accessibility Settings
@@ -124,15 +174,17 @@ private fun formatTimestamp(timestamp: Long): String {
 }
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(refreshTrigger: Int = 0) {
     val context = LocalContext.current
     var isProtectionEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
     var threats by remember { mutableStateOf<List<ThreatLog>>(emptyList()) }
     
-    // Refresh protection status when screen resumes
-    LaunchedEffect(Unit) {
+    // Refresh protection status when screen resumes or refreshTrigger changes
+    LaunchedEffect(refreshTrigger) {
+        android.util.Log.d("AnteClick", "DashboardScreen: Checking accessibility state (trigger=$refreshTrigger)")
         isProtectionEnabled = isAccessibilityServiceEnabled(context)
         threats = ThreatLogger.getAll()
+        android.util.Log.d("AnteClick", "DashboardScreen: Protection enabled = $isProtectionEnabled")
     }
     
     LazyColumn(
