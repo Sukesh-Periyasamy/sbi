@@ -18,6 +18,12 @@ router = APIRouter()
     summary="Health check endpoint",
     description="Returns service health status and Redis connection state"
 )
+@router.head(
+    "/health",
+    response_model=HealthCheckResponse,
+    summary="Health check endpoint (HEAD)",
+    description="Lightweight health check for monitoring systems"
+)
 async def health_check(
     simple: bool = Query(
         False,
@@ -65,6 +71,11 @@ async def health_check(
     summary="Readiness probe",
     description="Kubernetes readiness probe endpoint"
 )
+@router.head(
+    "/ready",
+    summary="Readiness probe (HEAD)",
+    description="Lightweight readiness check"
+)
 async def readiness_check():
     """
     Readiness probe for Kubernetes/container orchestration.
@@ -84,6 +95,11 @@ async def readiness_check():
     "/live",
     summary="Liveness probe",
     description="Kubernetes liveness probe endpoint"
+)
+@router.head(
+    "/live",
+    summary="Liveness probe (HEAD)",
+    description="Lightweight liveness check"
 )
 async def liveness_check():
     """
