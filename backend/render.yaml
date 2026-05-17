@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: trustshield-backend
+    env: docker
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: API_KEY
+        generateValue: true
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: trustshield-redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 60
+      - key: RATE_LIMIT_PER_HOUR
+        value: 1000
+      - key: ALLOWED_ORIGINS
+        value: "*"
+
+databases:
+  - name: trustshield-redis
+    plan: starter
+    ipAllowList: []
