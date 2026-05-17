@@ -14,14 +14,9 @@
     <string name="threat_detected">Phishing threat detected</string>
     
     <!-- Accessibility Service -->
-    <string name="accessibility_service_label">AnteClick</string>
-    <string name="accessibility_service_description">AnteClick uses the Accessibility API only to detect dangerous phishing websites during browser and WebView navigation events so users can be warned before financial fraud occurs. No browsing history is collected or transmitted.</string>
+    <string name="accessibility_service_label">AnteClick Financial Protection</string>
+    <string name="accessibility_service_description">AnteClick detects suspicious financial phishing websites when you browse. It only monitors browser address bars and in-app browser URLs to warn you before visiting dangerous sites. No passwords, messages, personal data, or browsing history are collected or transmitted.</string>
     <string name="accessibility_service_summary">Detects phishing websites in real-time</string>
-    
-    <!-- VPN Service -->
-    <string name="vpn_service_name">AnteClick Protection</string>
-    <string name="vpn_notification_title">AnteClick Active</string>
-    <string name="vpn_notification_text">Real-time phishing protection enabled</string>
     
     <!-- Warning Overlay -->
     <string name="warning_title">⚠️ Phishing Warning</string>
@@ -32,8 +27,6 @@
     <!-- Permissions -->
     <string name="permission_accessibility_title">Enable Accessibility Service</string>
     <string name="permission_accessibility_description">AnteClick needs accessibility permission to detect phishing websites in your browser.</string>
-    <string name="permission_vpn_title">Enable VPN Protection</string>
-    <string name="permission_vpn_description">AnteClick uses a local VPN to analyze network traffic for phishing threats.</string>
     <string name="permission_notification_title">Enable Notifications</string>
     <string name="permission_notification_description">AnteClick will notify you when threats are detected.</string>
     

@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
  */
 object ThreatRepository {
 
-    private const val TAG = "TrustShieldBackend"
+    private const val TAG = "AnteClick"
 
     // ── Configuration ─────────────────────────────────────────────────────────
     // Swap BASE_URL for the real backend before demo

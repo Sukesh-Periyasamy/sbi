@@ -93,7 +93,7 @@ import kotlinx.coroutines.launch
  */
 object OverlayWarningManager {
 
-    private const val TAG             = "TrustShield"
+    private const val TAG             = "AnteClick"
     private const val AUTO_DISMISS_MS = 30_000L   // 30 s — enough time to read and decide
     private const val DEDUP_WINDOW_MS = 5_000L
 
@@ -352,7 +352,7 @@ object OverlayWarningManager {
                                     color      = Color.White
                                 )
                                 Text(
-                                    text  = "TrustShield intercepted a suspicious site",
+                                    text  = "AnteClick detected a suspicious site",
                                     style = AnteClickType.caption,
                                     color = Color.White.copy(alpha = 0.82f)
                                 )
@@ -491,7 +491,7 @@ object OverlayWarningManager {
                             Text(text = "🛡", fontSize = 11.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text  = "Protected by TrustShield",
+                                text  = "Protected by AnteClick",
                                 style = AnteClickType.caption,
                                 color = AnteClickColors.SecondaryText
                             )

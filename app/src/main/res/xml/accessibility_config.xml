@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    AccessibilityService config for AnteClick.
+    AccessibilityService configuration for AnteClick Financial Phishing Protection.
 
-    WHY no packageNames filter here:
-    Android's XML packageNames filter is applied at the system level before events
-    reach the service. For standalone browsers this works fine, but in-app browsers
-    and embedded WebViews (Telegram, WhatsApp, Instagram) run inside the host app's
-    process — their events carry the host package name, not a browser package name.
-    Restricting packageNames in XML would silently drop all those events.
-    Package filtering is therefore done in Kotlin where it is reliable and auditable.
+    SCOPE:
+    AnteClick monitors ONLY browser address bars and in-app browser URLs to detect
+    suspicious financial phishing websites. It does NOT read messages, passwords,
+    OTPs, personal data, or general app content.
 
-    WHY both event types:
-    - TYPE_WINDOW_STATE_CHANGED  fires when a new in-app browser tab/page becomes active.
-    - TYPE_WINDOW_CONTENT_CHANGED fires when the address bar or WebView content updates.
-    Together they cover every navigation decision point without polling.
+    EVENT TYPES:
+    - TYPE_WINDOW_STATE_CHANGED: Detects when a new browser tab or in-app browser opens
+    - TYPE_WINDOW_CONTENT_CHANGED: Detects when the browser address bar updates
+
+    PACKAGE FILTERING:
+    Package filtering is performed in code (not XML) to support in-app browsers
+    (Telegram, WhatsApp, Instagram) where events carry the host app's package name.
+    Only browser and messaging app packages are monitored.
+
+    PRIVACY:
+    - No browsing history stored
+    - No personal data collected
+    - Only suspicious URLs sent to backend for verification
+    - Safe websites never leave the device
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
