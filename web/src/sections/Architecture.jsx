@@ -30,7 +30,7 @@ export default function Architecture() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Technology <span className="text-cyan">Architecture</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -55,7 +55,7 @@ export default function Architecture() {
                 </div>
                 <div className="flex-1 glass-card rounded-xl px-4 py-3 flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium text-sm">{layer.label}</div>
+                    <div className="text-text font-medium text-sm">{layer.label}</div>
                     <div className="text-text-muted text-xs">{layer.detail}</div>
                   </div>
                   {i < layers.length - 1 && (
@@ -74,7 +74,7 @@ export default function Architecture() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="glass-card rounded-2xl p-6 md:p-8"
           >
-            <h3 className="text-white font-semibold text-lg mb-6">Performance Metrics</h3>
+            <h3 className="text-text font-semibold text-lg mb-6">Performance Metrics</h3>
             <div className="space-y-4">
               {specs.map((spec, i) => (
                 <motion.div

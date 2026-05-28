@@ -31,14 +31,13 @@ function SectionLink({ section, children }) {
 
 export default function Footer() {
   return (
-    <footer className="border-t border-glass-border bg-navy-light">
-      <div className="mx-auto max-w-7xl px-6 py-12">
+    <footer className="border-t border-glass-border bg-navy-light">      <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <img src="/logo.png" alt="AnteClick" className="w-6 h-6" />
-              <span className="text-lg font-bold text-white">AnteClick</span>
+              <span className="text-lg font-bold text-blue">AnteClick</span>
             </Link>
             <p className="text-text-muted text-sm max-w-md leading-relaxed">
               AI-powered phishing protection for mobile banking users. 
@@ -49,7 +48,7 @@ export default function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4">Product</h4>
+            <h4 className="text-text font-semibold text-sm mb-4">Product</h4>
             <ul className="space-y-2">
               <li><SectionLink section="features">Features</SectionLink></li>
               <li><SectionLink section="how-it-works">How It Works</SectionLink></li>
@@ -59,7 +58,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4">Legal</h4>
+            <h4 className="text-text font-semibold text-sm mb-4">Legal</h4>
             <ul className="space-y-2">
               <li><Link to="/privacy-policy" className="text-text-muted text-sm hover:text-cyan transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms-and-conditions" className="text-text-muted text-sm hover:text-cyan transition-colors">Terms & Conditions</Link></li>

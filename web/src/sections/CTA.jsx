@@ -20,7 +20,7 @@ export default function CTA() {
             <Shield className="w-8 h-8 text-cyan" />
           </div>
 
-          <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+          <h2 className="text-3xl md:text-5xl font-bold text-text leading-tight">
             Start Protecting Your
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue to-cyan">
@@ -36,7 +36,7 @@ export default function CTA() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="#"
-              className="group px-8 py-4 bg-blue rounded-xl text-white font-semibold flex items-center gap-3 hover:bg-blue-light transition-all glow-blue"
+              className="group px-8 py-4 bg-blue rounded-xl text-text font-semibold flex items-center gap-3 hover:bg-blue-light transition-all glow-blue"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.3 2.3-8.636-8.632z"/>

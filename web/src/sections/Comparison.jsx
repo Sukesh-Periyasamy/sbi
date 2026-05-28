@@ -28,7 +28,7 @@ function Cell({ value }) {
 
 export default function Comparison() {
   return (
-    <section className="relative py-24 bg-navy">
+    <section className="relative py-24 bg-white">
       <div className="mx-auto max-w-4xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -37,7 +37,7 @@ export default function Comparison() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Why <span className="text-cyan">AnteClick</span> Is Different
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -53,7 +53,7 @@ export default function Comparison() {
           className="glass-card rounded-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-glass-border bg-navy-lighter/50">
+          <div className="grid grid-cols-4 gap-4 px-6 py-4 border-b border-glass-border bg-gray-100">
             <div className="text-text-muted text-xs font-semibold uppercase">Feature</div>
             <div className="text-center text-text-muted text-xs font-semibold uppercase">Antivirus</div>
             <div className="text-center text-text-muted text-xs font-semibold uppercase">Safe Browsing</div>
@@ -68,7 +68,7 @@ export default function Comparison() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 + i * 0.05 }}
-              className="grid grid-cols-4 gap-4 px-6 py-3 border-b border-glass-border/50 last:border-0 hover:bg-navy-lighter/30 transition-colors"
+              className="grid grid-cols-4 gap-4 px-6 py-3 border-b border-glass-border/50 last:border-0 hover:bg-gray-200/30 transition-colors"
             >
               <div className="text-text text-sm flex items-center">{feature.name}</div>
               <Cell value={feature.antivirus} />

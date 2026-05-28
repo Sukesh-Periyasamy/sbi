@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0A192F;
-  --color-navy-light: #112240;
-  --color-navy-lighter: #1D3461;
+  --color-navy: #FFFFFF;
+  --color-navy-light: #F8FAFC;
+  --color-navy-lighter: #E2E8F0;
   --color-blue: #2563EB;
   --color-blue-light: #3B82F6;
-  --color-cyan: #38BDF8;
-  --color-cyan-glow: #22D3EE;
-  --color-alert: #EF4444;
-  --color-warning: #F59E0B;
-  --color-success: #10B981;
-  --color-text: #E2E8F0;
-  --color-text-muted: #94A3B8;
-  --color-glass: rgba(17, 34, 64, 0.6);
-  --color-glass-border: rgba(56, 189, 248, 0.1);
+  --color-blue-dark: #1D4ED8;
+  --color-cyan: #0EA5E9;
+  --color-cyan-glow: #06B6D4;
+  --color-alert: #DC2626;
+  --color-warning: #D97706;
+  --color-success: #16A34A;
+  --color-text: #1E293B;
+  --color-text-muted: #64748B;
+  --color-glass: rgba(255, 255, 255, 0.8);
+  --color-glass-border: rgba(37, 99, 235, 0.12);
 }
 
 html {
@@ -24,25 +25,27 @@ html {
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background: #FFFFFF;
 }
 
 .glow-blue {
-  box-shadow: 0 0 20px rgba(37, 99, 235, 0.3), 0 0 60px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
 }
 
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3), 0 0 60px rgba(56, 189, 248, 0.1);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.2);
 }
 
 .glass-card {
-  background: rgba(17, 34, 64, 0.6);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(37, 99, 235, 0.04);
 }
 
 .grid-bg {
   background-image: 
-    linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(37, 99, 235, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }

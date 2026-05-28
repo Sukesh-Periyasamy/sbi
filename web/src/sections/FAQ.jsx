@@ -41,7 +41,7 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState(null)
 
   return (
-    <section id="faq" className="relative py-24 bg-navy">
+    <section id="faq" className="relative py-24 bg-white">
       <div className="mx-auto max-w-3xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -50,7 +50,7 @@ export default function FAQ() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Frequently Asked <span className="text-cyan">Questions</span>
           </h2>
         </motion.div>
@@ -69,7 +69,7 @@ export default function FAQ() {
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full px-6 py-5 flex items-center justify-between text-left"
               >
-                <span className="text-white font-medium text-sm md:text-base pr-4">
+                <span className="text-text font-medium text-sm md:text-base pr-4">
                   {faq.question}
                 </span>
                 <ChevronDown

@@ -3,7 +3,7 @@ import { Shield } from 'lucide-react'
 
 export default function PrivacyPolicy() {
   return (
-    <main className="pt-24 pb-20 bg-navy min-h-screen">
+    <main className="pt-24 pb-20 bg-white min-h-screen">
       <div className="mx-auto max-w-3xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         >
           <div className="flex items-center gap-3 mb-8">
             <Shield className="w-8 h-8 text-cyan" />
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Privacy Policy</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-text">Privacy Policy</h1>
           </div>
 
           <div className="text-text-muted text-sm mb-8">
@@ -32,7 +32,7 @@ export default function PrivacyPolicy() {
             </p>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">1. About AnteClick</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">1. About AnteClick</h2>
               <p>
                 AnteClick is a lightweight Android financial phishing protection application designed to help users detect potentially dangerous banking phishing websites before interacting with them.
               </p>
@@ -47,12 +47,12 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">2. Information We Collect</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">2. Information We Collect</h2>
               <p>
                 AnteClick is designed with privacy-first principles and minimal data collection.
               </p>
 
-              <h3 className="text-lg font-medium text-white mt-5 mb-2">A. Information Processed Locally on Device</h3>
+              <h3 className="text-lg font-medium text-text mt-5 mb-2">A. Information Processed Locally on Device</h3>
               <p>The following information may be processed locally on your device for phishing detection:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>browser URLs,</li>
@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="mt-2">This information is primarily analyzed locally and is not continuously uploaded to our servers.</p>
 
-              <h3 className="text-lg font-medium text-white mt-5 mb-2">B. Information Sent to Backend Services</h3>
+              <h3 className="text-lg font-medium text-text mt-5 mb-2">B. Information Sent to Backend Services</h3>
               <p>Only suspicious or high-risk URLs/packages may be sent to AnteClick backend services for additional verification.</p>
               <p className="mt-2">Examples of data that may be transmitted:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
@@ -82,7 +82,7 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="mt-2">SAFE URLs and verified official banking apps are processed locally and are not transmitted.</p>
 
-              <h3 className="text-lg font-medium text-white mt-5 mb-2">C. Device Information</h3>
+              <h3 className="text-lg font-medium text-text mt-5 mb-2">C. Device Information</h3>
               <p>AnteClick may collect limited technical device information, including:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>device model,</li>
@@ -93,7 +93,7 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="mt-2">This information helps improve app stability and compatibility.</p>
 
-              <h3 className="text-lg font-medium text-white mt-5 mb-2">D. Approximate Location Information</h3>
+              <h3 className="text-lg font-medium text-text mt-5 mb-2">D. Approximate Location Information</h3>
               <p>AnteClick may process approximate regional information such as:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>country,</li>
@@ -110,7 +110,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">3. Information We DO NOT Collect</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">3. Information We DO NOT Collect</h2>
               <p>AnteClick does NOT intentionally collect:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>passwords,</li>
@@ -126,21 +126,21 @@ export default function PrivacyPolicy() {
                 <li>browsing history logs,</li>
                 <li>financial account details.</li>
               </ul>
-              <p className="mt-3 font-medium text-white">AnteClick does NOT sell personal information.</p>
+              <p className="mt-3 font-medium text-text">AnteClick does NOT sell personal information.</p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">4. Accessibility Service Usage</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">4. Accessibility Service Usage</h2>
               <p>
                 AnteClick uses Android Accessibility APIs solely for phishing protection purposes.
               </p>
-              <p className="mt-3"><strong className="text-white">The Accessibility Service is used only to:</strong></p>
+              <p className="mt-3"><strong className="text-text">The Accessibility Service is used only to:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>detect browser and WebView URL navigation events,</li>
                 <li>identify suspicious phishing websites,</li>
                 <li>display contextual phishing warnings.</li>
               </ul>
-              <p className="mt-3"><strong className="text-white">AnteClick does NOT use Accessibility APIs to:</strong></p>
+              <p className="mt-3"><strong className="text-text">AnteClick does NOT use Accessibility APIs to:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>monitor personal conversations,</li>
                 <li>capture passwords,</li>
@@ -155,7 +155,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">5. How We Use Information</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">5. How We Use Information</h2>
               <p>Information processed by AnteClick may be used to:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>detect phishing websites,</li>
@@ -169,7 +169,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">6. Threat Intelligence Sources</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">6. Threat Intelligence Sources</h2>
               <p>AnteClick may use third-party phishing intelligence providers, including:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>OpenPhish,</li>
@@ -182,7 +182,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">7. Data Storage and Security</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">7. Data Storage and Security</h2>
               <p>
                 AnteClick uses reasonable technical and organizational measures to protect information.
               </p>
@@ -198,7 +198,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">8. Data Retention</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">8. Data Retention</h2>
               <p>AnteClick retains limited technical and phishing-related data only as long as necessary for:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>security analysis,</li>
@@ -210,7 +210,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">9. Third-Party Services</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">9. Third-Party Services</h2>
               <p>AnteClick may use third-party infrastructure providers, including:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>Render,</li>
@@ -227,7 +227,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">10. Children's Privacy</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">10. Children's Privacy</h2>
               <p>
                 AnteClick is not intended for children under the age of 13.
               </p>
@@ -240,7 +240,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">11. Your Choices</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">11. Your Choices</h2>
               <p>You may:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>disable Accessibility permissions,</li>
@@ -252,7 +252,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">12. International Use</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">12. International Use</h2>
               <p>
                 AnteClick services may operate on cloud infrastructure located in different regions.
               </p>
@@ -262,7 +262,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">13. Changes to This Privacy Policy</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">13. Changes to This Privacy Policy</h2>
               <p>
                 AnteClick may update this Privacy Policy periodically.
               </p>
@@ -275,16 +275,16 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">14. Contact Us</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">14. Contact Us</h2>
               <p>If you have questions regarding this Privacy Policy, please contact:</p>
               <div className="mt-3 p-4 glass-card rounded-xl">
-                <p><strong className="text-white">Email:</strong> support@anteclick.app</p>
-                <p className="mt-1"><strong className="text-white">Website:</strong> https://anteclick.app</p>
+                <p><strong className="text-text">Email:</strong> support@anteclick.app</p>
+                <p className="mt-1"><strong className="text-text">Website:</strong> https://anteclick.app</p>
               </div>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">15. Consent</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">15. Consent</h2>
               <p>By installing or using AnteClick, you acknowledge that:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>you have read this Privacy Policy,</li>

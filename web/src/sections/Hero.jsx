@@ -29,7 +29,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
   const isSafe = scenario.verdict === 'SAFE'
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0D1B2A] overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-gray-50 overflow-hidden">
       {/* Status bar */}
       <div className="flex items-center justify-between px-4 pt-2 pb-1 shrink-0">
         <span className="text-[10px] text-text-muted font-medium">9:41</span>
@@ -59,20 +59,20 @@ function FullPhoneDemo({ scenario, demoKey }) {
             >
               {/* App header */}
               <div className={`px-3 py-2 flex items-center gap-2 shrink-0 ${
-                scenario.source === 'WhatsApp' ? 'bg-[#075E54]' : 'bg-navy-lighter'
+                scenario.source === 'WhatsApp' ? 'bg-green-600' : 'bg-gray-200'
               }`}>
                 <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
                   <span className="text-[10px]">{scenario.source === 'WhatsApp' ? '💬' : '✉️'}</span>
                 </div>
                 <div>
-                  <span className="text-white text-[10px] font-medium">{scenario.sender}</span>
-                  <div className="text-[8px] text-white/60">online</div>
+                  <span className="text-text text-[10px] font-medium">{scenario.sender}</span>
+                  <div className="text-[8px] text-text/60">online</div>
                 </div>
               </div>
 
               {/* Chat area */}
               <div className={`flex-1 p-3 space-y-2 ${
-                scenario.source === 'WhatsApp' ? 'bg-[#0B141A]' : 'bg-navy'
+                scenario.source === 'WhatsApp' ? 'bg-gray-100' : 'bg-white'
               }`}>
                 {/* Incoming message */}
                 <AnimatePresence>
@@ -83,7 +83,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
                       transition={{ delay: 0.3 }}
                       className="max-w-[88%]"
                     >
-                      <div className="bg-[#1F2C34] rounded-xl rounded-tl-sm p-2.5 shadow-sm">
+                      <div className="bg-white rounded-xl rounded-tl-sm p-2.5 shadow-sm">
                         <p className="text-[9px] text-text leading-relaxed">
                           {scenario.message}
                         </p>
@@ -142,11 +142,11 @@ function FullPhoneDemo({ scenario, demoKey }) {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute inset-0 flex flex-col bg-[#0D1B2A]"
+              className="absolute inset-0 flex flex-col bg-gray-50"
             >
               {/* Browser tab bar */}
-              <div className="px-3 pt-2 pb-1 bg-navy-lighter shrink-0">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-navy rounded-lg border border-glass-border">
+              <div className="px-3 pt-2 pb-1 bg-gray-200 shrink-0">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white rounded-lg border border-glass-border">
                   {phase >= 5 && isSafe ? (
                     <Lock className="w-3 h-3 text-success shrink-0" />
                   ) : phase >= 5 && !isSafe ? (
@@ -198,11 +198,11 @@ function FullPhoneDemo({ scenario, demoKey }) {
                 {/* Fake page skeleton */}
                 {phase >= 3 && phase < 6 && (
                   <div className="space-y-2 opacity-40">
-                    <div className="h-8 bg-navy-lighter rounded-lg w-3/4" />
-                    <div className="h-3 bg-navy-lighter rounded w-full" />
-                    <div className="h-3 bg-navy-lighter rounded w-5/6" />
-                    <div className="h-20 bg-navy-lighter rounded-lg w-full mt-3" />
-                    <div className="h-8 bg-navy-lighter rounded-lg w-1/2 mt-2" />
+                    <div className="h-8 bg-gray-200 rounded-lg w-3/4" />
+                    <div className="h-3 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-200 rounded w-5/6" />
+                    <div className="h-20 bg-gray-200 rounded-lg w-full mt-3" />
+                    <div className="h-8 bg-gray-200 rounded-lg w-1/2 mt-2" />
                   </div>
                 )}
 
@@ -238,12 +238,12 @@ function FullPhoneDemo({ scenario, demoKey }) {
                         <div className="h-6 bg-blue/20 rounded-lg w-2/3 flex items-center px-2">
                           <span className="text-[8px] text-blue-400">Welcome to Online SBI</span>
                         </div>
-                        <div className="h-3 bg-navy-lighter rounded w-full" />
-                        <div className="h-3 bg-navy-lighter rounded w-4/5" />
-                        <div className="p-3 bg-navy-lighter rounded-xl mt-2">
+                        <div className="h-3 bg-gray-200 rounded w-full" />
+                        <div className="h-3 bg-gray-200 rounded w-4/5" />
+                        <div className="p-3 bg-gray-200 rounded-xl mt-2">
                           <div className="text-[8px] text-text-muted mb-1">Account Login</div>
-                          <div className="h-6 bg-navy rounded border border-glass-border mb-1.5" />
-                          <div className="h-6 bg-navy rounded border border-glass-border mb-2" />
+                          <div className="h-6 bg-white rounded border border-glass-border mb-1.5" />
+                          <div className="h-6 bg-white rounded border border-glass-border mb-2" />
                           <div className="h-7 bg-blue/30 rounded-lg flex items-center justify-center">
                             <span className="text-[8px] text-blue-400 font-medium">Login</span>
                           </div>
@@ -269,7 +269,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
                         initial={{ y: -40, opacity: 0, scale: 0.95 }}
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', damping: 18 }}
-                        className="relative z-10 bg-navy rounded-2xl border border-alert/40 shadow-2xl overflow-hidden m-1"
+                        className="relative z-10 bg-white rounded-2xl border border-alert/40 shadow-2xl overflow-hidden m-1"
                       >
                         {/* Header */}
                         <div className="bg-alert/20 px-3 py-2 flex items-center justify-between">
@@ -304,7 +304,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.5 + i * 0.12 }}
-                                className="flex items-center justify-between px-2 py-1 bg-navy-lighter/50 rounded"
+                                className="flex items-center justify-between px-2 py-1 bg-gray-100 rounded"
                               >
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-1.5 h-1.5 rounded-full bg-alert" />
@@ -322,7 +322,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
                                 <span className="text-text-muted">Confidence</span>
                                 <span className="text-alert font-bold">96%</span>
                               </div>
-                              <div className="h-1.5 bg-navy-lighter rounded-full overflow-hidden">
+                              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: '96%' }}
@@ -345,7 +345,7 @@ function FullPhoneDemo({ scenario, demoKey }) {
                             className="flex gap-2 pt-1"
                           >
                             <div className="flex-1 py-2 bg-alert rounded-lg text-center">
-                              <span className="text-[9px] text-white font-bold">Leave Website</span>
+                              <span className="text-[9px] text-text font-bold">Leave Website</span>
                             </div>
                             <div className="flex-1 py-2 border border-text-muted/30 rounded-lg text-center">
                               <span className="text-[9px] text-text-muted">Continue</span>
@@ -465,7 +465,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-text leading-tight"
             >
               Protect Your Banking
               <br />
@@ -493,7 +493,7 @@ export default function Hero() {
             >
               <a
                 href="#download"
-                className="group px-8 py-4 bg-blue rounded-xl text-white font-semibold flex items-center gap-2 hover:bg-blue-light transition-all glow-blue"
+                className="group px-8 py-4 bg-blue rounded-xl text-text font-semibold flex items-center gap-2 hover:bg-blue-light transition-all glow-blue"
               >
                 <Shield className="w-5 h-5" />
                 Get Protected

@@ -3,7 +3,7 @@ import { Shield } from 'lucide-react'
 
 export default function TermsOfService() {
   return (
-    <main className="pt-24 pb-20 bg-navy min-h-screen">
+    <main className="pt-24 pb-20 bg-white min-h-screen">
       <div className="mx-auto max-w-3xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -12,7 +12,7 @@ export default function TermsOfService() {
         >
           <div className="flex items-center gap-3 mb-8">
             <Shield className="w-8 h-8 text-cyan" />
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Terms & Conditions</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-text">Terms & Conditions</h1>
           </div>
 
           <div className="text-text-muted text-sm mb-8">
@@ -32,14 +32,14 @@ export default function TermsOfService() {
             </p>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">1. About AnteClick</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">1. About AnteClick</h2>
               <p>
                 AnteClick is a lightweight Android financial phishing protection application designed to help users identify suspicious banking and phishing websites before interacting with them.
               </p>
               <p className="mt-3">
                 AnteClick is intended to provide security warnings and risk indicators based on phishing intelligence feeds, heuristic analysis, browser/WebView URL detection, and banking app authenticity verification.
               </p>
-              <p className="mt-3"><strong className="text-white">AnteClick is NOT:</strong></p>
+              <p className="mt-3"><strong className="text-text">AnteClick is NOT:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>a banking institution,</li>
                 <li>an antivirus product,</li>
@@ -50,7 +50,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">2. Eligibility</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">2. Eligibility</h2>
               <p>
                 You must be at least 18 years old or have permission from a parent or legal guardian to use AnteClick.
               </p>
@@ -60,7 +60,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">3. Acceptable Use</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">3. Acceptable Use</h2>
               <p>You agree NOT to:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>misuse the Service,</li>
@@ -76,16 +76,16 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">4. Accessibility Service Usage</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">4. Accessibility Service Usage</h2>
               <p>AnteClick uses Android Accessibility APIs solely for phishing protection purposes.</p>
               <p className="mt-3">AnteClick also uses the PACKAGE_ADDED system broadcast to verify newly installed banking-related apps for authenticity. This is event-driven and does not scan all installed apps.</p>
-              <p className="mt-3"><strong className="text-white">The Accessibility Service is used only to:</strong></p>
+              <p className="mt-3"><strong className="text-text">The Accessibility Service is used only to:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>detect browser and WebView URL navigation events,</li>
                 <li>identify potentially dangerous phishing websites,</li>
                 <li>display contextual security warnings.</li>
               </ul>
-              <p className="mt-3"><strong className="text-white">AnteClick does NOT:</strong></p>
+              <p className="mt-3"><strong className="text-text">AnteClick does NOT:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>capture passwords,</li>
                 <li>read OTPs,</li>
@@ -100,11 +100,11 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">4A. Banking App Authenticity Verification</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">4A. Banking App Authenticity Verification</h2>
               <p>
                 AnteClick uses the Android PACKAGE_ADDED system broadcast to verify newly installed apps that resemble banking applications.
               </p>
-              <p className="mt-3"><strong className="text-white">This feature:</strong></p>
+              <p className="mt-3"><strong className="text-text">This feature:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>only activates when a new app is installed (event-driven),</li>
                 <li>only analyzes apps containing banking-related keywords,</li>
@@ -112,7 +112,7 @@ export default function TermsOfService() {
                 <li>warns users about potentially fake banking apps,</li>
                 <li>never automatically removes or blocks any app installation.</li>
               </ul>
-              <p className="mt-3"><strong className="text-white">This feature does NOT:</strong></p>
+              <p className="mt-3"><strong className="text-text">This feature does NOT:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>scan all installed apps,</li>
                 <li>run continuous background monitoring,</li>
@@ -122,18 +122,18 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">5. Security Warnings</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">5. Security Warnings</h2>
               <p>
                 AnteClick provides heuristic and intelligence-based phishing risk assessments. Security warnings are informational and preventive in nature.
               </p>
-              <p className="mt-3"><strong className="text-white">AnteClick does not guarantee:</strong></p>
+              <p className="mt-3"><strong className="text-text">AnteClick does not guarantee:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>detection of all phishing websites,</li>
                 <li>prevention of all fraud,</li>
                 <li>uninterrupted availability,</li>
                 <li>complete accuracy of all threat intelligence feeds.</li>
               </ul>
-              <p className="mt-3"><strong className="text-white">Users remain responsible for:</strong></p>
+              <p className="mt-3"><strong className="text-text">Users remain responsible for:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>verifying websites,</li>
                 <li>protecting their credentials,</li>
@@ -143,7 +143,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">6. Data Collection</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">6. Data Collection</h2>
               <p>
                 AnteClick is designed with privacy-focused principles.
               </p>
@@ -158,7 +158,7 @@ export default function TermsOfService() {
                 <li>anonymized device information,</li>
                 <li>approximate region or country.</li>
               </ul>
-              <p className="mt-3"><strong className="text-white">AnteClick does NOT intentionally collect:</strong></p>
+              <p className="mt-3"><strong className="text-text">AnteClick does NOT intentionally collect:</strong></p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>passwords,</li>
                 <li>OTPs,</li>
@@ -174,7 +174,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">7. Backend Services</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">7. Backend Services</h2>
               <p>AnteClick may use cloud-hosted backend services to:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>verify suspicious domains,</li>
@@ -195,7 +195,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">8. Third-Party Services</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">8. Third-Party Services</h2>
               <p>
                 AnteClick may integrate or rely on third-party infrastructure and threat intelligence providers, including:
               </p>
@@ -213,7 +213,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">9. Intellectual Property</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">9. Intellectual Property</h2>
               <p>
                 All AnteClick branding, software, source code, logos, designs, and related materials are protected by applicable intellectual property laws.
               </p>
@@ -229,7 +229,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">10. Limitation of Liability</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">10. Limitation of Liability</h2>
               <p>
                 AnteClick is provided on an "AS IS" and "AS AVAILABLE" basis.
               </p>
@@ -252,7 +252,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">11. No Financial or Legal Advice</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">11. No Financial or Legal Advice</h2>
               <p>AnteClick does not provide:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>financial advice,</li>
@@ -264,7 +264,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">12. Service Modifications</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">12. Service Modifications</h2>
               <p>AnteClick may:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>update features,</li>
@@ -280,7 +280,7 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">13. Termination</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">13. Termination</h2>
               <p>AnteClick reserves the right to suspend or terminate access to the Service if:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>misuse is detected,</li>
@@ -294,14 +294,14 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">14. Privacy</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">14. Privacy</h2>
               <p>
                 Your use of AnteClick is also governed by the <a href="/privacy-policy" className="text-cyan hover:underline">AnteClick Privacy Policy</a>.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">15. Governing Law</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">15. Governing Law</h2>
               <p>
                 These Terms shall be governed by and interpreted in accordance with the laws of India.
               </p>
@@ -311,16 +311,16 @@ export default function TermsOfService() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">16. Contact</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">16. Contact</h2>
               <p>For questions, feedback, or support regarding AnteClick:</p>
               <div className="mt-3 p-4 glass-card rounded-xl">
-                <p><strong className="text-white">Email:</strong> support@anteclick.app</p>
-                <p className="mt-1"><strong className="text-white">Website:</strong> https://anteclick.app</p>
+                <p><strong className="text-text">Email:</strong> support@anteclick.app</p>
+                <p className="mt-1"><strong className="text-text">Website:</strong> https://anteclick.app</p>
               </div>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-3">17. Acknowledgement</h2>
+              <h2 className="text-xl font-semibold text-text mb-3">17. Acknowledgement</h2>
               <p>By installing or using AnteClick, you acknowledge that:</p>
               <ul className="list-disc pl-6 space-y-1 mt-2">
                 <li>you have read these Terms,</li>

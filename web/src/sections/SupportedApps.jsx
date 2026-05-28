@@ -22,7 +22,7 @@ export default function SupportedApps() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Works Across <span className="text-cyan">All Your Apps</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-xl mx-auto">

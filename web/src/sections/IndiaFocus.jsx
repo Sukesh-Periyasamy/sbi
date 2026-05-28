@@ -14,7 +14,7 @@ const threats = [
 
 export default function IndiaFocus() {
   return (
-    <section className="relative py-24 bg-navy">
+    <section className="relative py-24 bg-white">
       <div className="mx-auto max-w-7xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -23,7 +23,7 @@ export default function IndiaFocus() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Built for India's <span className="text-cyan">Banking Ecosystem</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -40,7 +40,7 @@ export default function IndiaFocus() {
             transition={{ duration: 0.5 }}
             className="glass-card rounded-2xl p-6"
           >
-            <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+            <h3 className="text-text font-semibold text-lg mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-success" />
               Trusted Bank Whitelist
             </h3>
@@ -72,7 +72,7 @@ export default function IndiaFocus() {
             transition={{ duration: 0.5 }}
             className="glass-card rounded-2xl p-6"
           >
-            <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+            <h3 className="text-text font-semibold text-lg mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-alert" />
               Threats We Detect
             </h3>

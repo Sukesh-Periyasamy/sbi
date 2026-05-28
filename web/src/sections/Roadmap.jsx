@@ -20,7 +20,7 @@ export default function Roadmap() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Product <span className="text-cyan">Roadmap</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-xl mx-auto">
@@ -58,10 +58,10 @@ export default function Roadmap() {
                   {phase.status === 'done' && <span className="text-[10px] px-2 py-0.5 bg-success/20 text-success rounded-full font-medium">Complete</span>}
                   {phase.status === 'next' && <span className="text-[10px] px-2 py-0.5 bg-cyan/20 text-cyan rounded-full font-medium">In Progress</span>}
                 </div>
-                <h3 className="text-white font-semibold">{phase.title}</h3>
+                <h3 className="text-text font-semibold">{phase.title}</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {phase.items.map(item => (
-                    <span key={item} className="text-[11px] text-text-muted px-2 py-0.5 bg-navy-lighter/50 rounded">
+                    <span key={item} className="text-[11px] text-text-muted px-2 py-0.5 bg-gray-100 rounded">
                       {item}
                     </span>
                   ))}

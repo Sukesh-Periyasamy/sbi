@@ -58,7 +58,7 @@ function CountUp({ target, prefix, suffix }) {
 
 export default function Stats() {
   return (
-    <section className="relative py-20 bg-navy">
+    <section className="relative py-20 bg-white">
       <div className="mx-auto max-w-7xl px-6">
         <div className="glass-card rounded-3xl p-8 md:p-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
@@ -71,7 +71,7 @@ export default function Stats() {
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="text-center"
               >
-                <div className="text-3xl md:text-5xl font-bold text-white">
+                <div className="text-3xl md:text-5xl font-bold text-text">
                   <CountUp
                     target={metric.value}
                     prefix={metric.prefix}

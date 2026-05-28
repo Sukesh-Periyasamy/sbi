@@ -157,10 +157,10 @@ function StatCard({ icon: Icon, label, value, color, delay }) {
         whileHover={{ scale: 1.1, rotate: 5 }}
         transition={{ type: 'spring', stiffness: 300 }}
       >
-        <Icon className="w-6 h-6 text-white" />
+        <Icon className="w-6 h-6 text-text" />
       </motion.div>
       <div>
-        <div className="text-2xl md:text-3xl font-bold text-white">
+        <div className="text-2xl md:text-3xl font-bold text-text">
           <AnimatedCounter value={value} />
         </div>
         <div className="text-xs text-text-muted mt-0.5">{label}</div>
@@ -180,7 +180,7 @@ function LiveFeedItem({ item: feedItem, index }) {
       animate={{ opacity: 1, x: 0, height: 'auto' }}
       exit={{ opacity: 0, x: 20, height: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-navy-lighter/30 transition-all border border-transparent hover:border-glass-border"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-200/30 transition-all border border-transparent hover:border-glass-border"
     >
       <motion.div
         animate={{ scale: [1, 1.3, 1] }}
@@ -206,7 +206,7 @@ function HeatmapBar({ state, count, maxCount, index }) {
       className="flex items-center gap-2"
     >
       <span className="text-[11px] text-text-muted w-24 shrink-0">{state}</span>
-      <div className="flex-1 h-3.5 bg-navy-lighter rounded-full overflow-hidden">
+      <div className="flex-1 h-3.5 bg-gray-200 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${(count / maxCount) * 100}%` }}
@@ -325,7 +325,7 @@ export default function Dashboard() {
   const maxHeatmap = Math.max(...heatmapData.map(h => h.count))
 
   return (
-    <main className="pt-20 pb-12 bg-navy min-h-screen grid-bg">
+    <main className="pt-20 pb-12 bg-white min-h-screen grid-bg">
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <motion.div
@@ -335,7 +335,7 @@ export default function Dashboard() {
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 pt-4 gap-4"
         >
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-text flex items-center gap-3">
               <motion.div
                 animate={{ rotate: [0, 5, -5, 0] }}
                 transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
@@ -391,7 +391,7 @@ export default function Dashboard() {
             className="lg:col-span-2 glass-card rounded-xl p-5"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+              <h3 className="text-text font-semibold text-sm flex items-center gap-2">
                 <Activity className="w-4 h-4 text-cyan" />
                 Live Threat Feed
               </h3>
@@ -418,7 +418,7 @@ export default function Dashboard() {
             transition={{ delay: 0.4 }}
             className="glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm flex items-center gap-2 mb-4">
+            <h3 className="text-text font-semibold text-sm flex items-center gap-2 mb-4">
               <Globe className="w-4 h-4 text-cyan" />
               India Attack Density
             </h3>
@@ -436,7 +436,7 @@ export default function Dashboard() {
             transition={{ delay: 0.5 }}
             className="lg:col-span-2 glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm flex items-center gap-2 mb-4">
+            <h3 className="text-text font-semibold text-sm flex items-center gap-2 mb-4">
               <TrendingUp className="w-4 h-4 text-cyan" />
               24-Hour Detection Timeline
             </h3>
@@ -452,7 +452,7 @@ export default function Dashboard() {
             transition={{ delay: 0.6, type: 'spring' }}
             className="glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm mb-4">Detection Types</h3>
+            <h3 className="text-text font-semibold text-sm mb-4">Detection Types</h3>
             <div className="h-44 flex items-center justify-center">
               <Doughnut data={typesData} options={{ responsive: true, maintainAspectRatio: false, animation: { animateRotate: true, duration: 1500 }, plugins: { legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 9 }, padding: 8, usePointStyle: true } } }, cutout: '65%' }} />
             </div>
@@ -465,7 +465,7 @@ export default function Dashboard() {
             transition={{ delay: 0.7 }}
             className="glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm mb-4">Most Targeted Banks</h3>
+            <h3 className="text-text font-semibold text-sm mb-4">Most Targeted Banks</h3>
             <div className="h-44">
               <Bar data={banksData} options={{ ...chartOptions, animation: { duration: 1800, easing: 'easeOutBounce' } }} />
             </div>
@@ -478,7 +478,7 @@ export default function Dashboard() {
             transition={{ delay: 0.8 }}
             className="glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm mb-4">Threat Source Apps</h3>
+            <h3 className="text-text font-semibold text-sm mb-4">Threat Source Apps</h3>
             <div className="space-y-3">
               {sourceApps.map((app, i) => (
                 <motion.div
@@ -489,7 +489,7 @@ export default function Dashboard() {
                   className="flex items-center gap-2"
                 >
                   <span className="text-xs text-text w-24 shrink-0">{app.app}</span>
-                  <div className="flex-1 h-3 bg-navy-lighter rounded-full overflow-hidden">
+                  <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${app.percentage}%` }}
@@ -510,7 +510,7 @@ export default function Dashboard() {
             transition={{ delay: 0.9 }}
             className="glass-card rounded-xl p-5"
           >
-            <h3 className="text-white font-semibold text-sm flex items-center gap-2 mb-4">
+            <h3 className="text-text font-semibold text-sm flex items-center gap-2 mb-4">
               <Search className="w-4 h-4 text-cyan" />
               Top Scam Keywords
             </h3>

@@ -99,7 +99,7 @@ export default function LiveDemo() {
   }
 
   return (
-    <section id="demo" className="relative py-24 bg-navy">
+    <section id="demo" className="relative py-24 bg-white">
       <div className="mx-auto max-w-4xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -108,7 +108,7 @@ export default function LiveDemo() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Live Threat <span className="text-cyan">Scanner</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -134,13 +134,13 @@ export default function LiveDemo() {
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
                 placeholder="Enter a URL to analyze (e.g., sbi-login.xyz)"
-                className="w-full pl-12 pr-4 py-4 bg-navy border border-glass-border rounded-xl text-text text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-cyan/50 transition-colors"
+                className="w-full pl-12 pr-4 py-4 bg-white border border-glass-border rounded-xl text-text text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-cyan/50 transition-colors"
               />
             </div>
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing || !url.trim()}
-              className="px-8 py-4 bg-blue rounded-xl text-white font-semibold hover:bg-blue-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+              className="px-8 py-4 bg-blue rounded-xl text-text font-semibold hover:bg-blue-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
             >
               {isAnalyzing ? 'Scanning...' : 'Analyze'}
             </button>
@@ -242,7 +242,7 @@ export default function LiveDemo() {
                           <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="flex items-center justify-between px-4 py-2.5 bg-navy rounded-lg border border-glass-border"
+                            className="flex items-center justify-between px-4 py-2.5 bg-white rounded-lg border border-glass-border"
                           >
                             <div className="flex items-center gap-2">
                               <div className={`w-2 h-2 rounded-full ${signal.safe ? 'bg-success' : 'bg-alert'}`} />

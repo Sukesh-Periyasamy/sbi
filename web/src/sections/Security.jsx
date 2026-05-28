@@ -45,7 +45,7 @@ export default function Security() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Privacy-First <span className="text-cyan">Architecture</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -65,7 +65,7 @@ export default function Security() {
               className="glass-card rounded-2xl p-6 hover:border-cyan/20 transition-all"
             >
               <item.icon className="w-8 h-8 text-success mb-4" />
-              <h3 className="text-white font-semibold mb-2">{item.title}</h3>
+              <h3 className="text-text font-semibold mb-2">{item.title}</h3>
               <p className="text-text-muted text-sm leading-relaxed">{item.description}</p>
             </motion.div>
           ))}

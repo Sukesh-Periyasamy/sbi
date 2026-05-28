@@ -46,7 +46,7 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="relative py-24 bg-navy">
+    <section id="features" className="relative py-24 bg-white">
       <div className="mx-auto max-w-7xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -55,7 +55,7 @@ export default function Features() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-text">
             Intelligent Protection, <span className="text-cyan">Zero Friction</span>
           </h2>
           <p className="mt-4 text-text-muted max-w-2xl mx-auto">
@@ -77,7 +77,7 @@ export default function Features() {
               <div className="w-12 h-12 rounded-xl bg-blue/10 flex items-center justify-center mb-4 group-hover:bg-blue/20 transition-colors">
                 <feature.icon className="w-6 h-6 text-cyan" />
               </div>
-              <h3 className="text-white font-semibold mb-2">{feature.title}</h3>
+              <h3 className="text-text font-semibold mb-2">{feature.title}</h3>
               <p className="text-text-muted text-sm leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}

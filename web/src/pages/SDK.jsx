@@ -60,7 +60,7 @@ const integrationTargets = [
 
 export default function SDK() {
   return (
-    <main className="pt-24 pb-20 bg-navy min-h-screen">
+    <main className="pt-24 pb-20 bg-white min-h-screen">
       <div className="mx-auto max-w-5xl px-6">
 
         {/* Hero */}
@@ -74,7 +74,7 @@ export default function SDK() {
             <Building2 className="w-4 h-4 text-cyan" />
             <span className="text-cyan text-sm font-medium">For Banking & Fintech</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+          <h1 className="text-3xl md:text-5xl font-bold text-text leading-tight">
             AnteClick SDK for
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue to-cyan">
@@ -96,7 +96,7 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-3">How the AnteClick SDK Works</h2>
+          <h2 className="text-2xl font-bold text-text mb-3">How the AnteClick SDK Works</h2>
           <p className="text-text-muted mb-6 leading-relaxed">
             Unlike traditional mobile security products, AnteClick does not continuously monitor the device 
             or run heavy background scanning. Instead, the SDK uses an <span className="text-cyan font-medium">event-driven security architecture</span>. 
@@ -143,7 +143,7 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Event-Driven Architecture</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Event-Driven Architecture</h2>
           <div className="glass-card rounded-2xl p-6 md:p-8">
             <div className="space-y-0">
               {architectureSteps.map((step, i) => {
@@ -163,7 +163,7 @@ export default function SDK() {
                         isIdle ? 'bg-success/20 text-success' :
                         isDetection ? 'bg-alert/20 text-alert' :
                         isResult ? 'bg-cyan/20 text-cyan' :
-                        'bg-navy-lighter text-text-muted'
+                        'bg-gray-200 text-text-muted'
                       }`}>
                         {i + 1}
                       </div>
@@ -194,13 +194,13 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Key SDK Characteristics</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Key SDK Characteristics</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Lightweight Runtime */}
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="w-5 h-5 text-cyan" />
-                <h3 className="text-white font-semibold">Lightweight Runtime</h3>
+                <h3 className="text-text font-semibold">Lightweight Runtime</h3>
               </div>
               <div className="space-y-2">
                 {['No continuous device scanning', 'No packet inspection', 'No VPN tunneling', 'No TLS interception', 'No persistent foreground service', 'No aggressive background processing'].map(item => (
@@ -219,7 +219,7 @@ export default function SDK() {
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <EyeOff className="w-5 h-5 text-cyan" />
-                <h3 className="text-white font-semibold">Invisible During Normal Use</h3>
+                <h3 className="text-text font-semibold">Invisible During Normal Use</h3>
               </div>
               <p className="text-sm text-text-muted mb-3">During safe banking usage:</p>
               <div className="space-y-2">
@@ -245,12 +245,12 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Real-Time Threat Detection</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Real-Time Threat Detection</h2>
           <div className="glass-card rounded-2xl p-6">
             <p className="text-text-muted text-sm mb-4">The SDK uses multiple lightweight security layers:</p>
             <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {detectionLayers.map((layer, i) => (
-                <motion.div key={layer} variants={item} className="flex items-center gap-2 px-3 py-2 bg-navy-lighter/50 rounded-lg">
+                <motion.div key={layer} variants={item} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
                   <Activity className="w-3.5 h-3.5 text-cyan shrink-0" />
                   <span className="text-sm text-text">{layer}</span>
                 </motion.div>
@@ -270,7 +270,7 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Privacy-First Architecture</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Privacy-First Architecture</h2>
           <div className="glass-card rounded-2xl p-6">
             <p className="text-text-muted text-sm mb-4">The SDK is designed with strict privacy principles. AnteClick:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -297,10 +297,10 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Why Banks Can Use AnteClick</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Why Banks Can Use AnteClick</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-text font-semibold mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-cyan" />
                 What Banks Get
               </h3>
@@ -318,7 +318,7 @@ export default function SDK() {
             </div>
 
             <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-text font-semibold mb-4 flex items-center gap-2">
                 <Smartphone className="w-5 h-5 text-cyan" />
                 Integration Targets
               </h3>
@@ -345,7 +345,7 @@ export default function SDK() {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold text-white mb-6">Enterprise Security Without Enterprise Complexity</h2>
+          <h2 className="text-2xl font-bold text-text mb-6">Enterprise Security Without Enterprise Complexity</h2>
           <div className="glass-card rounded-2xl p-6">
             <p className="text-text-muted text-sm leading-relaxed mb-4">
               AnteClick is designed to provide practical mobile fraud protection without introducing 
@@ -374,7 +374,7 @@ export default function SDK() {
         >
           <a
             href="mailto:sdk@anteclick.app"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-blue rounded-xl text-white font-semibold hover:bg-blue-light transition-all glow-blue"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue rounded-xl text-text font-semibold hover:bg-blue-light transition-all glow-blue"
           >
             <Building2 className="w-5 h-5" />
             Contact for SDK Integration

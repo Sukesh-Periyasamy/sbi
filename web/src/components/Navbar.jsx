@@ -39,12 +39,12 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-glass-border bg-navy/80 backdrop-blur-xl">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-glass-border bg-white/80 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="AnteClick" className="w-8 h-8" />
-          <span className="text-xl font-bold text-white">AnteClick</span>
+          <span className="text-xl font-bold text-blue">AnteClick</span>
         </Link>
 
         {/* Desktop links */}
@@ -60,7 +60,7 @@ export default function Navbar() {
           ))}
           <button
             onClick={() => scrollToSection('download')}
-            className="px-5 py-2.5 bg-blue rounded-lg text-white text-sm font-semibold hover:bg-blue-light transition-colors cursor-pointer"
+            className="px-5 py-2.5 bg-blue rounded-lg text-text text-sm font-semibold hover:bg-blue-light transition-colors cursor-pointer"
           >
             Get Protected
           </button>
@@ -83,7 +83,7 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-glass-border bg-navy-light"
+            className="md:hidden border-t border-glass-border bg-white"
           >
             <div className="px-6 py-4 flex flex-col gap-4">
               {navLinks.map(link => (
@@ -97,7 +97,7 @@ export default function Navbar() {
               ))}
               <button
                 onClick={() => { scrollToSection('download'); setMobileOpen(false) }}
-                className="px-5 py-2.5 bg-blue rounded-lg text-white text-sm font-semibold text-center cursor-pointer"
+                className="px-5 py-2.5 bg-blue rounded-lg text-text text-sm font-semibold text-center cursor-pointer"
               >
                 Get Protected
               </button>
