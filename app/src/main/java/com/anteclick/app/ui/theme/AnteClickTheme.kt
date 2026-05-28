@@ -9,30 +9,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
-// Source: design.txt — TrustShield Final UI/UX Design Reference
+// White/Blue theme — matches website (anteclick.app)
 
 object AnteClickColors {
-    // Brand
-    val SbiNavy       = Color(0xFF292075)
-    val PrimaryPurple = Color(0xFF9A3E76)
-    val SbiCyan       = Color(0xFF00B5EF)
-    val AccentBlue    = Color(0xFF577CB7)
+    // Brand — Blue primary
+    val PrimaryBlue   = Color(0xFF2563EB)
+    val BlueDark      = Color(0xFF1D4ED8)
+    val BlueLight     = Color(0xFF3B82F6)
+    val Cyan          = Color(0xFF0EA5E9)
+
+    // Legacy aliases (used in existing code)
+    val SbiNavy       = Color(0xFF1E293B)   // Dark slate for headers
+    val PrimaryPurple = Color(0xFF2563EB)   // Now maps to blue
+    val SbiCyan       = Color(0xFF0EA5E9)
+    val AccentBlue    = Color(0xFF3B82F6)
 
     // State
-    val SuccessGreen  = Color(0xFF419A29)
-    val WarningAmber  = Color(0xFFF5A623)
-    val ErrorRed      = Color(0xFFD54B34)
+    val SuccessGreen  = Color(0xFF16A34A)
+    val WarningAmber  = Color(0xFFD97706)
+    val ErrorRed      = Color(0xFFDC2626)
 
-    // Neutral
-    val Background    = Color(0xFFF2F2F4)
+    // Neutral — White/light background
+    val Background    = Color(0xFFFFFFFF)
     val SurfaceWhite  = Color(0xFFFFFFFF)
-    val PrimaryText   = Color(0xFF40404C)
-    val SecondaryText = Color(0xFFA3A3A3)
+    val SurfaceGray   = Color(0xFFF8FAFC)
+    val PrimaryText   = Color(0xFF1E293B)
+    val SecondaryText = Color(0xFF64748B)
+    val Border        = Color(0xFFE2E8F0)
 
-    // Derived
-    val ErrorRedSurface  = Color(0xFFFFF0EE)
-    val NavySurface      = Color(0xFFEEEDF7)
-    val PurpleSurface    = Color(0xFFF7EEF4)
+    // Derived surfaces
+    val ErrorRedSurface  = Color(0xFFFEF2F2)
+    val NavySurface      = Color(0xFFEFF6FF)
+    val PurpleSurface    = Color(0xFFEFF6FF)
+    val BlueSurface      = Color(0xFFDBEAFE)
 }
 
 object AnteClickType {
@@ -49,14 +58,16 @@ object AnteClickType {
 // ── Material3 Theme ───────────────────────────────────────────────────────────
 
 private val LightColors = lightColorScheme(
-    primary          = AnteClickColors.SbiNavy,
+    primary          = AnteClickColors.PrimaryBlue,
     onPrimary        = Color.White,
-    secondary        = AnteClickColors.PrimaryPurple,
+    secondary        = AnteClickColors.Cyan,
     onSecondary      = Color.White,
     background       = AnteClickColors.Background,
     onBackground     = AnteClickColors.PrimaryText,
     surface          = AnteClickColors.SurfaceWhite,
     onSurface        = AnteClickColors.PrimaryText,
+    surfaceVariant   = AnteClickColors.SurfaceGray,
+    outline          = AnteClickColors.Border,
     error            = AnteClickColors.ErrorRed,
     onError          = Color.White
 )
