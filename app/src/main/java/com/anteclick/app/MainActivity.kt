@@ -3,6 +3,7 @@ package com.anteclick.app
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -27,9 +28,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.anteclick.app.ui.AccessibilityDisclosureScreen
+import com.anteclick.app.ui.hasAcceptedAccessibilityDisclosure
 import com.anteclick.app.ui.theme.AnteClickColors
 import com.anteclick.app.ui.theme.AnteClickTheme
 import com.anteclick.app.ui.theme.AnteClickType
@@ -56,6 +61,7 @@ class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ThreatLogger.init(this)
         
         // Request notification permission on first launch (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -178,6 +184,7 @@ fun DashboardScreen(refreshTrigger: Int = 0) {
     val context = LocalContext.current
     var isProtectionEnabled by remember { mutableStateOf(isAccessibilityServiceEnabled(context)) }
     var threats by remember { mutableStateOf<List<ThreatLog>>(emptyList()) }
+    var showDisclosure by remember { mutableStateOf(false) }
     
     // Refresh protection status when screen resumes or refreshTrigger changes
     LaunchedEffect(refreshTrigger) {
@@ -185,6 +192,20 @@ fun DashboardScreen(refreshTrigger: Int = 0) {
         isProtectionEnabled = isAccessibilityServiceEnabled(context)
         threats = ThreatLogger.getAll()
         android.util.Log.d("AnteClick", "DashboardScreen: Protection enabled = $isProtectionEnabled")
+    }
+
+    // Show disclosure screen if user requested it
+    if (showDisclosure) {
+        AccessibilityDisclosureScreen(
+            onAccepted = {
+                showDisclosure = false
+                openAccessibilitySettings(context)
+            },
+            onDismiss = {
+                showDisclosure = false
+            }
+        )
+        return
     }
     
     LazyColumn(
@@ -202,7 +223,13 @@ fun DashboardScreen(refreshTrigger: Int = 0) {
                     } else {
                         ProtectionDisabledCard(
                             onEnableClick = {
-                                openAccessibilitySettings(context)
+                                if (hasAcceptedAccessibilityDisclosure(context)) {
+                                    // Already accepted disclosure, go directly to settings
+                                    openAccessibilitySettings(context)
+                                } else {
+                                    // Show disclosure first
+                                    showDisclosure = true
+                                }
                             }
                         )
                     }
@@ -248,6 +275,36 @@ fun DashboardScreen(refreshTrigger: Int = 0) {
                 }
             }
         }
+
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+
+        item {
+            AnimatedEntry(delayMs = 240) {
+                PrivacyPolicyLink(context)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivacyPolicyLink(context: Context) {
+    val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(R.string.privacy_policy_link_text),
+            style = AnteClickType.caption,
+            color = AnteClickColors.PrimaryPurple,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier.clickable {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(privacyPolicyUrl))
+                context.startActivity(intent)
+            }
+        )
     }
 }
 

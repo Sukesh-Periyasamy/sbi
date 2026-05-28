@@ -35,9 +35,7 @@ class Settings(BaseSettings):
     port: int = 8000
     workers: int = 2
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {"env_file": ".env", "case_sensitive": False}
     
     @property
     def cors_origins(self) -> List[str]:

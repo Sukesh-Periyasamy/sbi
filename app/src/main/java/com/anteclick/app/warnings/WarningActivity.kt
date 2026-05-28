@@ -79,6 +79,13 @@ class WarningActivity : ComponentActivity() {
         private const val NOTIF_CHANNEL_ID = "anteclick_phishing_alerts"
         private const val NOTIF_ID         = 1001
 
+        // Package warning extras
+        const val EXTRA_PACKAGE_WARNING = "extra_package_warning"
+        const val EXTRA_PKG_NAME        = "extra_pkg_name"
+        const val EXTRA_PKG_SCORE       = "extra_pkg_score"
+        const val EXTRA_PKG_VERDICT     = "extra_pkg_verdict"
+        const val EXTRA_PKG_REASONS     = "extra_pkg_reasons"
+
         /**
          * Primary launch path — called from GatewayActivity and
          * AnteClickAccessibilityService.
@@ -188,6 +195,18 @@ class WarningActivity : ComponentActivity() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         super.onCreate(savedInstanceState)
+
+        // Check if this is a package warning or a URL phishing warning
+        val isPackageWarning = intent.getBooleanExtra(EXTRA_PACKAGE_WARNING, false)
+
+        if (isPackageWarning) {
+            showPackageWarningContent()
+        } else {
+            showUrlWarningContent()
+        }
+    }
+
+    private fun showUrlWarningContent() {
         val url        = intent.getStringExtra(EXTRA_URL)     ?: ""
         val score      = intent.getIntExtra(EXTRA_SCORE, 0)
         val verdict    = intent.getStringExtra(EXTRA_VERDICT) ?: "HIGH_RISK"
@@ -215,6 +234,38 @@ class WarningActivity : ComponentActivity() {
                             finish()
                         },
                         onClose = { finish() }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showPackageWarningContent() {
+        val packageName = intent.getStringExtra(EXTRA_PKG_NAME) ?: ""
+        val score       = intent.getIntExtra(EXTRA_PKG_SCORE, 0)
+        val verdict     = intent.getStringExtra(EXTRA_PKG_VERDICT) ?: "HIGH_RISK"
+        val reasons     = intent.getStringArrayListExtra(EXTRA_PKG_REASONS) ?: arrayListOf()
+
+        setContent {
+            AnteClickTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color    = AnteClickColors.Background
+                ) {
+                    PackageWarningScreen(
+                        packageName = packageName,
+                        score       = score,
+                        verdict     = verdict,
+                        reasons     = reasons,
+                        onUninstall = {
+                            val uninstallIntent = Intent(Intent.ACTION_DELETE).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(uninstallIntent)
+                            finish()
+                        },
+                        onDismiss = { finish() }
                     )
                 }
             }
@@ -620,4 +671,213 @@ private fun SectionLabel(text: String) {
         style = AnteClickType.label,
         color = AnteClickColors.SecondaryText
     )
+}
+
+// ── Package Warning Screen ───────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun PackageWarningScreen(
+    packageName: String,
+    score: Int,
+    verdict: String,
+    reasons: List<String>,
+    onUninstall: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // ── Gradient header ───────────────────────────────────────────────────
+        PackageWarningHeader(verdict = verdict)
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        AnimatedEntry {
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                PackageThreatCard(
+                    packageName = packageName,
+                    score       = score,
+                    verdict     = verdict,
+                    reasons     = reasons
+                )
+                PackageActionButtons(onUninstall = onUninstall, onDismiss = onDismiss)
+                ProtectionFooter()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PackageWarningHeader(verdict: String) {
+    val headerTitle = when (verdict.uppercase()) {
+        "HIGH_RISK" -> "High Risk App Detected"
+        "WARNING"   -> "Suspicious App Detected"
+        else        -> "App Verification"
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(
+                    listOf(AnteClickColors.SbiNavy, AnteClickColors.PrimaryPurple)
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 32.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(AnteClickColors.ErrorRed),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text     = "⚠",
+                    fontSize = 22.sp,
+                    color    = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text  = headerTitle,
+                style = AnteClickType.display,
+                color = Color.White
+            )
+            Text(
+                text  = "This app may be impersonating a legitimate banking application and could steal your financial credentials.",
+                style = AnteClickType.body,
+                color = Color.White.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PackageThreatCard(
+    packageName: String,
+    score: Int,
+    verdict: String,
+    reasons: List<String>
+) {
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(12.dp),
+        colors    = CardDefaults.cardColors(containerColor = AnteClickColors.SurfaceWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Risk level badge + score row
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                RiskLevelBadge(verdict = verdict)
+                ScorePill(score = score)
+            }
+
+            // Package name section
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SectionLabel("Package Name")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(AnteClickColors.ErrorRedSurface)
+                        .border(1.dp, AnteClickColors.ErrorRed.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text       = packageName.ifEmpty { "—" },
+                        style      = AnteClickType.caption.copy(fontFamily = FontFamily.Monospace),
+                        color      = AnteClickColors.ErrorRed,
+                        maxLines   = 3,
+                        overflow   = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Signal chips — show all fired signals
+            if (reasons.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel("Signals Detected")
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement   = Arrangement.spacedBy(8.dp)
+                    ) {
+                        reasons.forEach { reason ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(AnteClickColors.ErrorRedSurface)
+                                    .border(
+                                        1.dp,
+                                        AnteClickColors.ErrorRed.copy(alpha = 0.4f),
+                                        RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text  = reason,
+                                    style = AnteClickType.caption,
+                                    color = AnteClickColors.ErrorRed
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PackageActionButtons(onUninstall: () -> Unit, onDismiss: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Primary — Uninstall
+        Button(
+            onClick  = onUninstall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape  = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AnteClickColors.ErrorRed
+            )
+        ) {
+            Text(
+                text  = "Uninstall App",
+                style = AnteClickType.buttonText,
+                color = Color.White
+            )
+        }
+
+        // Secondary — Dismiss
+        OutlinedButton(
+            onClick  = onDismiss,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape  = RoundedCornerShape(12.dp),
+            border = BorderStroke(
+                1.dp, AnteClickColors.SecondaryText.copy(alpha = 0.5f)
+            )
+        ) {
+            Text(
+                text  = "Dismiss",
+                style = AnteClickType.buttonText,
+                color = AnteClickColors.SecondaryText
+            )
+        }
+    }
 }

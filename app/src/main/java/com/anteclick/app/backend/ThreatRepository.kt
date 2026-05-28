@@ -1,6 +1,7 @@
 package com.anteclick.app.backend
 
 import android.util.Log
+import com.anteclick.app.BuildConfig
 import com.anteclick.app.models.BackendThreatResponse
 import com.anteclick.app.scoring.ThreatVerdict
 import kotlinx.coroutines.delay
@@ -38,8 +39,7 @@ object ThreatRepository {
     private const val TAG = "AnteClick"
 
     // ── Configuration ─────────────────────────────────────────────────────────
-    // Swap BASE_URL for the real backend before demo
-    private const val BASE_URL        = "https://api.trustshield.app/"
+    private val BASE_URL: String = BuildConfig.BACKEND_URL
     private const val CONNECT_TIMEOUT = 8L    // seconds — fail fast on mobile networks
     private const val READ_TIMEOUT    = 8L
     private const val MAX_RETRIES     = 3
@@ -51,6 +51,12 @@ object ThreatRepository {
         .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
         .writeTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("X-API-Key", BuildConfig.API_KEY)
+                .build()
+            chain.proceed(request)
+        }
         .addInterceptor(
             HttpLoggingInterceptor { message ->
                 Log.d(TAG, message)

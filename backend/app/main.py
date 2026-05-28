@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.logging import logger
 from app.services.cache import cache
-from app.api import analyze, health
+from app.api import analyze, health, verify_package, dashboard
 
 
 # Rate limiter
@@ -77,6 +77,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include routers
 app.include_router(analyze.router, prefix="/analyze", tags=["Analysis"])
+app.include_router(verify_package.router, prefix="/verify-package", tags=["Package Verification"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(health.router, tags=["Health"])
 
 

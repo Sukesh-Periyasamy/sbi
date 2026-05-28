@@ -125,6 +125,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        ThreatLogger.init(this)
         serviceInfo = serviceInfo.apply {
             // STRICT: Only window state and content changes - NO text changes
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or

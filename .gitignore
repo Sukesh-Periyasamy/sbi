@@ -23,3 +23,10 @@ local.properties
 # Generated files
 gen/
 out/
+
+# Heap dumps and debug logs
+*.hprof
+replay_pid*.log
+
+# Kotlin sessions
+.kotlin/

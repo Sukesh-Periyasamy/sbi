@@ -2,7 +2,7 @@
 /health endpoint - Service health check
 """
 from fastapi import APIRouter, Query
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.schemas import HealthCheckResponse
 from app.services.cache import cache
@@ -57,7 +57,7 @@ async def health_check(
         version="1.0.0",
         environment=settings.environment,
         redis_connected=redis_connected,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     
     if not redis_connected:

@@ -150,7 +150,7 @@ All requests require `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: your-api-key" \
-  "https://api.AnteClick.app/analyze?domain=test.com"
+  "https://api.anteclick.com/analyze?domain=test.com"
 ```
 
 ### Generate Secure API Key
@@ -165,7 +165,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ### CORS
 Configure allowed origins in `.env`:
 ```env
-ALLOWED_ORIGINS=https://AnteClick.app,https://api.AnteClick.app
+ALLOWED_ORIGINS=https://anteclick.com,https://api.anteclick.com
 ```
 
 ## 📊 Monitoring
@@ -233,25 +233,38 @@ backend/
 │   │   ├── analyze.py    # /analyze endpoint
 │   │   └── health.py     # Health checks
 │   ├── core/             # Core configuration
-│   │   ├── config.py     # Settings
-│   │   ├── logging.py    # Logging setup
+│   │   ├── config.py     # Settings (pydantic-settings)
+│   │   ├── logging.py    # Structured JSON logging
 │   │   └── security.py   # API key auth
 │   ├── models/           # Pydantic models
-│   │   └── schemas.py    # Request/response models
+│   │   └── schemas.py    # Request/response schemas
 │   ├── services/         # Business logic
-│   │   ├── cache.py      # Redis caching
-│   │   └── threat_scorer.py  # Threat analysis
-│   └── main.py           # FastAPI app
-├── tests/                # Test suite
+│   │   ├── cache.py      # Redis caching (async)
+│   │   ├── openphish.py  # OpenPhish feed (optional v1.1)
+│   │   └── threat_scorer.py  # 16-signal threat analysis
+│   ├── utils/            # Utility functions
+│   └── main.py           # FastAPI app entry point
+├── tests/                # pytest test suite
 │   ├── conftest.py       # Test fixtures
-│   ├── test_analyze.py   # Analyze endpoint tests
-│   └── test_health.py    # Health check tests
-├── Dockerfile            # Container image
+│   ├── test_analyze.py   # /analyze endpoint tests
+│   ├── test_health.py    # Health check tests
+│   └── test_production_verification.py  # Full verification suite
+├── docs/                 # Supplementary documentation
+│   ├── ARCHITECTURE.md
+│   ├── ANDROID_INTEGRATION.md
+│   ├── DEPLOYMENT_CHECKLIST.md
+│   └── ...
+├── scripts/              # Deployment scripts
+│   ├── deploy-railway.sh
+│   ├── deploy-railway.ps1
+│   └── verify_deployment.py
+├── Dockerfile            # Multi-stage container build
 ├── docker-compose.yml    # Local development
 ├── docker-compose.prod.yml  # Production
+├── DEPLOYMENT.md         # Deployment guide
 ├── requirements.txt      # Python dependencies
 ├── .env.example          # Environment template
-└── DEPLOYMENT.md         # Deployment guide
+└── README.md             # This file
 ```
 
 ## 🔧 Configuration

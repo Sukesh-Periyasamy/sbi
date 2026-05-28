@@ -4,11 +4,12 @@
 from fastapi import APIRouter, Query, Depends, HTTPException, status, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.schemas import ThreatAnalysisResponse, ErrorResponse
 from app.services.cache import cache
 from app.services.threat_scorer import threat_scorer
+from app.services.analytics import analytics
 from app.core.security import verify_api_key
 from app.core.config import settings
 from app.core.logging import logger
@@ -54,7 +55,7 @@ async def analyze_domain(
         description="Domain to analyze (e.g., sbi-login.xyz)",
         min_length=3,
         max_length=255,
-        example="sbi-secure-login.xyz"
+        examples=["sbi-secure-login.xyz"]
     ),
     api_key: str = Depends(verify_api_key)
 ):
@@ -96,7 +97,7 @@ async def analyze_domain(
     if cached_result:
         logger.info(f"Cache hit for domain: {domain}")
         cached_result["cached"] = True
-        cached_result["timestamp"] = datetime.utcnow()
+        cached_result["timestamp"] = datetime.now(timezone.utc)
         return ThreatAnalysisResponse(**cached_result)
     
     # Perform analysis
@@ -111,7 +112,7 @@ async def analyze_domain(
             "score": score,
             "source": "backend",
             "reasons": reasons,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "cached": False
         }
         
@@ -119,6 +120,17 @@ async def analyze_domain(
         await cache.set(cache_key, response_data)
         
         logger.info(f"Analysis complete: {domain} -> {verdict} (score: {score})")
+        
+        # Async analytics logging (fire-and-forget, never blocks detection)
+        if verdict != "SAFE":
+            target_bank = next((kw.upper() for kw in ["sbi", "hdfc", "icici", "axis", "paytm", "phonepe"] if kw in domain), "Unknown")
+            await analytics.log_url_detection(
+                domain=domain,
+                risk_level=verdict,
+                risk_score=score,
+                detection_method=reasons[0].split(" ")[0].lower() if reasons else "heuristic",
+                target_bank=target_bank,
+            )
         
         return ThreatAnalysisResponse(**response_data)
         

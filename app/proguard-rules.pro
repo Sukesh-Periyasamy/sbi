@@ -24,13 +24,10 @@
 -keep class androidx.compose.** { *; }
 -keep class androidx.lifecycle.** { *; }
 
-# ── Remove all logging in release ─────────────────────────────────────────────
+# ── Strip verbose and debug logs in release (preserve info/warn/error for diagnostics) ─
 -assumenosideeffects class android.util.Log {
-    public static *** d(...);
     public static *** v(...);
-    public static *** i(...);
-    public static *** w(...);
-    public static *** e(...);
+    public static *** d(...);
 }
 
 # ── Retrofit + OkHttp ─────────────────────────────────────────────────────────

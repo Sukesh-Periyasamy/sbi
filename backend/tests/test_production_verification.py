@@ -319,7 +319,7 @@ class TestSecurityValidation:
     def test_api_key_required(self, client):
         """Verify API key is required"""
         response = client.get("/analyze?domain=test.com")
-        assert response.status_code == 403
+        assert response.status_code == 401
     
     def test_invalid_api_key_rejected(self, client):
         """Verify invalid API key is rejected"""
