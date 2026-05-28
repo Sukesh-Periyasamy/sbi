@@ -2,8 +2,8 @@
 
 ## Developer Account
 
-- [ ] Create Google Play Developer account ($25 one-time fee)
-- [ ] Complete identity verification (ID + address)
+- [x] Create Google Play Developer account ($25 one-time fee)
+- [x] Complete identity verification (ID + address)
 
 ---
 

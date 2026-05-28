@@ -7,8 +7,8 @@ const navLinks = [
   { label: 'Features', section: 'features' },
   { label: 'How It Works', section: 'how-it-works' },
   { label: 'Dashboard', section: null, route: '/dashboard' },
+  { label: 'SDK', section: null, route: '/sdk' },
   { label: 'Security', section: 'security' },
-  { label: 'FAQ', section: 'faq' },
 ]
 
 export default function Navbar() {
