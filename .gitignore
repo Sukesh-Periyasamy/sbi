@@ -30,3 +30,6 @@ replay_pid*.log
 
 # Kotlin sessions
 .kotlin/
+
+.vercel
+.env*

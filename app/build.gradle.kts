@@ -25,7 +25,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "BACKEND_URL", "\"${localProperties.getProperty("BACKEND_URL", System.getenv("BACKEND_URL") ?: "https://api.anteclick.com/")}\"")
+        buildConfigField("String", "BACKEND_URL", "\"${localProperties.getProperty("BACKEND_URL", System.getenv("BACKEND_URL") ?: "https://api.anteclick.app/")}\"")
         buildConfigField("String", "API_KEY", "\"${localProperties.getProperty("API_KEY", System.getenv("API_KEY") ?: "")}\"")
     }
 
