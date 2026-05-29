@@ -58,10 +58,10 @@ function CountUp({ target, prefix, suffix }) {
 
 export default function Stats() {
   return (
-    <section className="relative py-20 bg-white">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="glass-card rounded-3xl p-8 md:p-12">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+    <section className="relative py-16 md:py-20 bg-white">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="glass-card rounded-2xl md:rounded-3xl p-5 md:p-8 lg:p-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {metrics.map((metric, i) => (
               <motion.div
                 key={metric.label}
@@ -71,7 +71,7 @@ export default function Stats() {
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="text-center"
               >
-                <div className="text-3xl md:text-5xl font-bold text-text">
+                <div className="text-2xl md:text-3xl lg:text-5xl font-bold text-text">
                   <CountUp
                     target={metric.value}
                     prefix={metric.prefix}
@@ -79,7 +79,7 @@ export default function Stats() {
                   />
                   <span className="text-cyan">{metric.suffix}</span>
                 </div>
-                <p className="mt-2 text-text-muted text-sm">{metric.label}</p>
+                <p className="mt-1 md:mt-2 text-text-muted text-xs md:text-sm">{metric.label}</p>
               </motion.div>
             ))}
           </div>

@@ -362,29 +362,35 @@ const phoneAnimations = [PhoneStep1, PhoneStep2, PhoneStep3, PhoneStep4]
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function HowItWorks() {
-  const [hoveredStep, setHoveredStep] = useState(null)
+  const [activeStep, setActiveStep] = useState(null)
+
+  const handleStepInteraction = (i) => {
+    // Toggle on tap for mobile, acts as hover replacement
+    setActiveStep(activeStep === i ? null : i)
+  }
 
   return (
-    <section id="how-it-works" className="relative py-24 bg-navy-light">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="how-it-works" className="relative py-16 md:py-24 bg-navy-light">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-text">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-text">
             How <span className="text-cyan">AnteClick</span> Works
           </h2>
-          <p className="mt-4 text-text-muted max-w-2xl mx-auto">
-            Protection happens automatically. Hover over each step to see it in action.
+          <p className="mt-4 text-text-muted max-w-2xl mx-auto text-sm md:text-base">
+            Protection happens automatically. Tap or hover over each step to see it in action.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           {steps.map((step, i) => {
             const PhoneAnimation = phoneAnimations[i]
+            const isActive = activeStep === i
             return (
               <motion.div
                 key={step.step}
@@ -393,34 +399,35 @@ export default function HowItWorks() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.15 }}
                 className="relative"
-                onMouseEnter={() => setHoveredStep(i)}
-                onMouseLeave={() => setHoveredStep(null)}
+                onMouseEnter={() => setActiveStep(i)}
+                onMouseLeave={() => setActiveStep(null)}
+                onClick={() => handleStepInteraction(i)}
               >
                 {/* Connector line */}
                 {i < steps.length - 1 && (
                   <div className="hidden lg:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-cyan/30 to-transparent z-0" />
                 )}
 
-                <div className="glass-card rounded-2xl p-6 relative z-10 cursor-pointer hover:border-cyan/30 transition-all">
+                <div className={`glass-card rounded-2xl p-4 md:p-6 relative z-10 cursor-pointer transition-all ${isActive ? 'border-cyan/30' : 'hover:border-cyan/30'}`}>
                   {/* Step number */}
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} mb-4`}>
-                    <step.icon className="w-6 h-6 text-text" />
+                  <div className={`inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${step.color} mb-3 md:mb-4`}>
+                    <step.icon className="w-5 h-5 md:w-6 md:h-6 text-text" />
                   </div>
                   
-                  <div className="text-xs text-cyan font-mono mb-2">STEP {step.step}</div>
-                  <h3 className="text-text font-semibold text-lg mb-2">{step.title}</h3>
-                  <p className="text-text-muted text-sm leading-relaxed">{step.description}</p>
+                  <div className="text-xs text-cyan font-mono mb-1 md:mb-2">STEP {step.step}</div>
+                  <h3 className="text-text font-semibold text-base md:text-lg mb-1 md:mb-2">{step.title}</h3>
+                  <p className="text-text-muted text-xs md:text-sm leading-relaxed">{step.description}</p>
                 </div>
 
-                {/* Phone popup on hover */}
+                {/* Phone popup on hover/tap - desktop only */}
                 <AnimatePresence>
-                  {hoveredStep === i && (
+                  {isActive && (
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-4"
+                      className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-4 hidden md:block"
                     >
                       {/* Phone frame */}
                       <div className="w-48 h-80 rounded-[1.5rem] border-2 border-navy-lighter bg-white shadow-2xl overflow-hidden glow-cyan">
@@ -436,6 +443,28 @@ export default function HowItWorks() {
                       {/* Arrow */}
                       <div className="flex justify-center">
                         <div className="w-3 h-3 bg-white border-b-2 border-r-2 border-navy-lighter rotate-45 -mt-1.5" />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Mobile inline phone animation - shows below card on tap */}
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="md:hidden overflow-hidden mt-3"
+                    >
+                      <div className="w-40 h-72 mx-auto rounded-[1.5rem] border-2 border-navy-lighter bg-white shadow-xl overflow-hidden">
+                        <div className="flex justify-center pt-1.5 pb-1 bg-white">
+                          <div className="w-10 h-1 rounded-full bg-gray-200" />
+                        </div>
+                        <div className="h-[calc(100%-20px)] overflow-hidden">
+                          <PhoneAnimation />
+                        </div>
                       </div>
                     </motion.div>
                   )}

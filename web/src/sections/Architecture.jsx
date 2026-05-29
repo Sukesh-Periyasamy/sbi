@@ -21,8 +21,8 @@ const specs = [
 
 export default function Architecture() {
   return (
-    <section id="architecture" className="relative py-24 bg-navy-light">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="architecture" className="relative py-16 md:py-24 bg-navy-light">
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -30,15 +30,15 @@ export default function Architecture() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-text">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-text">
             Technology <span className="text-cyan">Architecture</span>
           </h2>
-          <p className="mt-4 text-text-muted max-w-2xl mx-auto">
+          <p className="mt-4 text-text-muted max-w-2xl mx-auto text-sm md:text-base">
             A layered detection pipeline designed for speed, accuracy, and privacy.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Architecture flow */}
           <div className="space-y-3">
             {layers.map((layer, i) => (

@@ -457,15 +457,15 @@ export default function Hero() {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue/20 rounded-full blur-[128px]" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan/10 rounded-full blur-[128px]" />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Left: Text */}
           <div className="text-center lg:text-left">
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-text leading-tight"
+              className="text-3xl md:text-5xl lg:text-6xl font-bold text-text leading-tight"
             >
               Protect Your Banking
               <br />
@@ -478,7 +478,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="mt-6 text-lg text-text-muted max-w-xl leading-relaxed"
+              className="mt-4 md:mt-6 text-base md:text-lg text-text-muted max-w-xl leading-relaxed mx-auto lg:mx-0"
             >
               Real-time phishing detection that monitors browser URLs and warns you 
               instantly when a fraudulent banking link is detected. No data collected. 
@@ -540,7 +540,7 @@ export default function Hero() {
             </div>
 
             {/* Phone frame */}
-            <div className="relative w-[280px] h-[560px] rounded-[2.8rem] border-[3px] border-[#1a2744] bg-black shadow-2xl overflow-hidden glow-cyan">
+            <div className="relative w-[240px] h-[480px] md:w-[280px] md:h-[560px] rounded-[2.8rem] border-[3px] border-[#1a2744] bg-black shadow-2xl overflow-hidden glow-cyan">
               {/* Notch */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-20 flex items-center justify-center">
                 <div className="w-3 h-3 rounded-full bg-[#1a2744] border border-navy-lighter/50" />
