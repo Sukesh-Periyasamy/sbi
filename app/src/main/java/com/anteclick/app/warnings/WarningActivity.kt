@@ -330,13 +330,13 @@ fun WarningScreen(
                 ActionButtons(
                     onClose = {
                         // Navigate to HOME screen to leave the dangerous site
-                        startActivity(
+                        this@WarningActivity.startActivity(
                             Intent(Intent.ACTION_MAIN).apply {
                                 addCategory(Intent.CATEGORY_HOME)
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             }
                         )
-                        finish()
+                        this@WarningActivity.finish()
                     },
                     onContinue = onContinue
                 )
