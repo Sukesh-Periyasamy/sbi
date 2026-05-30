@@ -233,7 +233,16 @@ class WarningActivity : ComponentActivity() {
                             startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                             finish()
                         },
-                        onClose = { finish() }
+                        onClose = {
+                            // Navigate to HOME to leave the dangerous site
+                            startActivity(
+                                Intent(Intent.ACTION_MAIN).apply {
+                                    addCategory(Intent.CATEGORY_HOME)
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                }
+                            )
+                            finish()
+                        }
                     )
                 }
             }
@@ -327,19 +336,7 @@ fun WarningScreen(
                     source     = source,
                     confidence = confidence
                 )
-                ActionButtons(
-                    onClose = {
-                        // Navigate to HOME screen to leave the dangerous site
-                        this@WarningActivity.startActivity(
-                            Intent(Intent.ACTION_MAIN).apply {
-                                addCategory(Intent.CATEGORY_HOME)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            }
-                        )
-                        this@WarningActivity.finish()
-                    },
-                    onContinue = onContinue
-                )
+                ActionButtons(onClose = onClose, onContinue = onContinue)
                 ProtectionFooter()
             }
         }
