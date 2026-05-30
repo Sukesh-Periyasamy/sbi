@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnteClick — Test Links</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>🛡️ AnteClick Test Links</h1>
+        <p>Click any link below to test phishing detection on your device. Open this page in Chrome on your Android phone with AnteClick enabled.</p>
+        <div class="legend">
+            <span class="badge high">HIGH_RISK</span>
+            <span class="badge warn">WARNING</span>
+            <span class="badge safe">SAFE</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Set 1: High-Risk Banking -->
+        <section>
+            <h2>Set 1 — High-Risk Banking Phishing (20)</h2>
+            <p class="expected">Expected: <span class="badge high">HIGH_RISK</span></p>
+            <div class="links" id="set1"></div>
+        </section>
+
+        <!-- Set 2: UPI / Wallet -->
+        <section>
+            <h2>Set 2 — UPI / Wallet Scams (10)</h2>
+            <p class="expected">Expected: <span class="badge high">HIGH_RISK</span></p>
+            <div class="links" id="set2"></div>
+        </section>
+
+        <!-- Set 3: Typosquatting -->
+        <section>
+            <h2>Set 3 — Typosquatting Attacks (10)</h2>
+            <p class="expected">Expected: <span class="badge warn">WARNING</span> → <span class="badge high">HIGH_RISK</span></p>
+            <div class="links" id="set3"></div>
+        </section>
+
+        <!-- Set 4: Homoglyph -->
+        <section>
+            <h2>Set 4 — Homoglyph / Advanced Attacks (5)</h2>
+            <p class="expected">Expected: <span class="badge high">HIGH_RISK</span></p>
+            <div class="links" id="set4"></div>
+        </section>
+
+        <!-- Set 5: Suspicious Random -->
+        <section>
+            <h2>Set 5 — Suspicious Random Domains (5)</h2>
+            <p class="expected">Expected: <span class="badge warn">WARNING</span> or <span class="badge high">HIGH_RISK</span></p>
+            <div class="links" id="set5"></div>
+        </section>
+
+        <!-- Safe Domains -->
+        <section>
+            <h2>Safe Legitimate Domains (20)</h2>
+            <p class="expected">Expected: <span class="badge safe">SAFE</span> — Should NEVER trigger a warning</p>
+            <div class="links" id="safe"></div>
+        </section>
+
+        <!-- Repeated Detection Test -->
+        <section>
+            <h2>Repeated Detection Bug Test</h2>
+            <p class="expected">Test: Click A → Leave → Click B → Leave → Click C → Leave → Click A again. All should trigger.</p>
+            <div class="rotation-test">
+                <a href="https://secure-sbi-login.xyz" class="link-card high" id="rotA">A: secure-sbi-login.xyz</a>
+                <a href="https://paytm-secure-login.xyz" class="link-card high" id="rotB">B: paytm-secure-login.xyz</a>
+                <a href="https://hdfc-kyc-update.top" class="link-card high" id="rotC">C: hdfc-kyc-update.top</a>
+            </div>
+            <div class="test-log">
+                <h3>Test Log</h3>
+                <div id="log"></div>
+                <button onclick="clearLog()">Clear Log</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>AnteClick Testing Suite — For development use only</p>
+        <p><a href="https://anteclick.app">anteclick.app</a></p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
