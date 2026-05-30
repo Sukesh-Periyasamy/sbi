@@ -144,35 +144,72 @@ object OverlayWarningManager {
     }
 
     /**
-     * Exits the dangerous website by performing a back navigation.
-     * Uses AccessibilityService GLOBAL_ACTION_BACK to close the phishing page naturally.
-     * Falls back to HOME intent if back action is unavailable.
+     * Exits the dangerous website by performing navigation actions.
+     * Uses multiple strategies to ensure it works across all Android devices:
+     * 1. Try GLOBAL_ACTION_BACK twice (first closes overlay context, second navigates back)
+     * 2. Fallback: launch HOME screen
+     * 3. Final fallback: launch Chrome with about:blank
      */
     fun exitDangerousWebsite(context: Context) {
         mainHandler.post {
-            // Try AccessibilityService back action first
-            val service = context as? android.accessibilityservice.AccessibilityService
+            var success = false
+
+            // Strategy 1: Use AccessibilityService GLOBAL_ACTION_BACK
+            // We need to get the actual service instance
+            val service = try {
+                // The context should be the AccessibilityService itself
+                if (context is android.accessibilityservice.AccessibilityService) {
+                    context
+                } else {
+                    null
+                }
+            } catch (_: Exception) { null }
+
             if (service != null) {
-                val backSuccess = service.performGlobalAction(
+                // Perform BACK action — this navigates back in the browser
+                success = service.performGlobalAction(
                     android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
                 )
-                if (backSuccess) {
-                    Log.d(TAG, "User exited dangerous website via BACK action")
+                Log.d(TAG, "GLOBAL_ACTION_BACK result=$success")
+
+                if (success) {
+                    // On some devices, one BACK just dismisses the current page
+                    // Schedule a second BACK after a short delay to ensure we leave the site
+                    mainHandler.postDelayed({
+                        service.performGlobalAction(
+                            android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+                        )
+                        Log.d(TAG, "Second GLOBAL_ACTION_BACK executed")
+                    }, 300)
                     return@post
                 }
             }
 
-            // Fallback: go to home screen
-            Log.d(TAG, "Fallback HOME action triggered")
+            // Strategy 2: Go to HOME screen (works on all devices)
+            Log.d(TAG, "Fallback: launching HOME screen")
             try {
-                context.startActivity(
-                    Intent(Intent.ACTION_MAIN).apply {
-                        addCategory(Intent.CATEGORY_HOME)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                )
+                val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+                context.startActivity(homeIntent)
+                success = true
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to exit dangerous website: ${e.message}", e)
+                Log.e(TAG, "HOME intent failed: ${e.message}")
+            }
+
+            // Strategy 3: Open a safe blank page in the browser (last resort)
+            if (!success) {
+                Log.d(TAG, "Final fallback: opening about:blank")
+                try {
+                    val safeIntent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("about:blank")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    context.startActivity(safeIntent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "about:blank fallback also failed: ${e.message}")
+                }
             }
         }
     }
