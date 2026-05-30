@@ -54,6 +54,7 @@ export default function Footer() {
               <li><SectionLink section="how-it-works">How It Works</SectionLink></li>
               <li><SectionLink section="security">Security</SectionLink></li>
               <li><SectionLink section="faq">FAQ</SectionLink></li>
+              <li><a href="https://test.anteclick.app" target="_blank" rel="noopener noreferrer" className="text-text-muted text-sm hover:text-cyan transition-colors">Test Links ↗</a></li>
             </ul>
           </div>
 
