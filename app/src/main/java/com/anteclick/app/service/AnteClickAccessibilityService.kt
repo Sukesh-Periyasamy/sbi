@@ -79,7 +79,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
         private const val URL_DEDUP_WINDOW_MS = 5_000L
         private const val STABLE_EVENT_THROTTLE_MS = 1500L
-        private const val NAVIGATION_STABILITY_MS = 300L  // Reduced to 300ms for better responsiveness
+        private const val NAVIGATION_STABILITY_MS = 100L  // 100ms for fast detection
         private val HOST_REGEX = Regex("^[a-z0-9.-]+$")
         
         // Known TLDs for URL validation
@@ -132,7 +132,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
                          AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
             flags        = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            notificationTimeout = 100L
+            notificationTimeout = 50L  // 50ms for fast event delivery
         }
         Log.d(TAG, "AnteClickAccessibilityService connected - STRICT mode (no TYPE_VIEW_TEXT_CHANGED)")
     }
@@ -200,15 +200,11 @@ class AnteClickAccessibilityService : AccessibilityService() {
             Log.d(TAG, "New URL detected: $url - will process after stability check")
         }
 
-        // Check if URL has been stable long enough
+        // Check if URL has been stable long enough (only strict for messaging apps)
         val stabilityDuration = now - lastObservedTime
-        if (stabilityDuration < NAVIGATION_STABILITY_MS) {
-            Log.d(TAG, "URL stability check: ${stabilityDuration}ms / ${NAVIGATION_STABILITY_MS}ms")
-            // Don't return immediately - allow processing if this is a browser package
-            // Messaging apps need strict stability, browsers can be more lenient
-            if (isMessaging) {
-                return  // Strict for messaging apps to prevent chat scanning
-            }
+        if (isMessaging && stabilityDuration < NAVIGATION_STABILITY_MS) {
+            Log.d(TAG, "Messaging app stability check: ${stabilityDuration}ms / ${NAVIGATION_STABILITY_MS}ms - waiting")
+            return
         }
 
         // Increment token for this navigation
@@ -579,8 +575,24 @@ class AnteClickAccessibilityService : AccessibilityService() {
         )
     }
 
-    private fun isFinancialUrl(lowerUrl: String): Boolean =
-        FINANCIAL_KEYWORDS.any { lowerUrl.contains(it) }
+    private fun isFinancialUrl(lowerUrl: String): Boolean {
+        // Check for financial keywords
+        if (FINANCIAL_KEYWORDS.any { lowerUrl.contains(it) }) return true
+        
+        // Also analyze URLs with suspicious TLDs (common in phishing)
+        val suspiciousTlds = setOf(".xyz", ".top", ".click", ".shop", ".live", ".buzz", ".tk", ".ml", ".ga")
+        if (suspiciousTlds.any { lowerUrl.endsWith(it) || lowerUrl.contains("$it/") || lowerUrl.contains("$it?") }) return true
+        
+        // Also analyze raw IP addresses
+        val host = lowerUrl.substringAfter("://").substringBefore("/").substringBefore("?")
+        if (host.matches(Regex("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"))) return true
+        
+        // Also analyze URL shorteners
+        val shorteners = setOf("bit.ly", "tinyurl.com", "t.co", "rb.gy", "cutt.ly", "goo.gl")
+        if (shorteners.any { lowerUrl.contains(it) }) return true
+        
+        return false
+    }
 
     // ── Scoring and action ────────────────────────────────────────────────────
     //

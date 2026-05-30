@@ -58,7 +58,7 @@
     <string name="privacy_description">AnteClick only analyzes URLs for phishing detection. No browsing history is stored or transmitted.</string>
     <string name="privacy_data_collection">What data is collected?</string>
     <string name="privacy_data_answer">Only suspicious website domains are sent to our backend for verification. Safe websites never leave your device.</string>
-    <string name="privacy_policy_url">https://anteclick.com/privacy-policy</string>
+    <string name="privacy_policy_url">https://anteclick.app/privacy-policy</string>
     <string name="privacy_policy_link_text">Privacy Policy</string>
     
     <!-- Errors -->
