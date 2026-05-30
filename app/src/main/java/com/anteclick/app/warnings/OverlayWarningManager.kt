@@ -240,7 +240,7 @@ object OverlayWarningManager {
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.CENTER
         }
 
         val lifecycleOwner = OverlayLifecycleOwner().also { it.start() }
