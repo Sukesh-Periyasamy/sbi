@@ -75,10 +75,10 @@ export default function SDK() {
             <span className="text-cyan text-sm font-medium">For Banking & Fintech</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold text-text leading-tight">
-            AnteClick SDK for
+            AnteClick Shield SDK
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue to-cyan">
-              Banking Applications
+              for Banking Applications
             </span>
           </h1>
           <p className="mt-6 text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
@@ -86,6 +86,22 @@ export default function SDK() {
             Event-driven security that activates only when threats are detected — 
             zero impact on normal banking experience.
           </p>
+
+          {/* Key specs */}
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {[
+              { label: '< 500 KB', desc: 'SDK Size' },
+              { label: 'Event-Driven', desc: 'Architecture' },
+              { label: 'No UI Default', desc: 'Invisible' },
+              { label: 'Offline', desc: 'Works Without Internet' },
+              { label: '0 ms Impact', desc: 'On App Performance' },
+            ].map(spec => (
+              <div key={spec.label} className="px-4 py-2 glass-card rounded-xl text-center">
+                <div className="text-blue font-bold text-sm">{spec.label}</div>
+                <div className="text-text-muted text-[10px]">{spec.desc}</div>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
         {/* How It Works */}
@@ -361,6 +377,49 @@ export default function SDK() {
               <p className="text-cyan font-semibold text-lg">
                 "Protect users only when protection is needed."
               </p>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Platform Positioning */}
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mb-16"
+        >
+          <h2 className="text-2xl font-bold text-text mb-6">The AnteClick Platform</h2>
+          <div className="glass-card rounded-2xl p-6">
+            <p className="text-text-muted text-sm leading-relaxed mb-6">
+              AnteClick is more than a consumer app. It's a complete banking fraud prevention platform.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { title: 'AnteClick Consumer App', desc: 'Real-time phishing protection for end users', status: 'Live' },
+                { title: 'AnteClick Shield SDK', desc: 'Lightweight integration for banking apps', status: 'Available' },
+                { title: 'Threat Intelligence Dashboard', desc: 'Real-time analytics and attack visibility', status: 'Live' },
+                { title: 'Banking Threat Analytics', desc: 'Enterprise fraud intelligence platform', status: 'Roadmap' },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="p-4 bg-navy-light rounded-xl border border-glass-border"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-text font-semibold text-sm">{item.title}</h4>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
+                      item.status === 'Live' ? 'bg-success/10 text-success border border-success/20' :
+                      item.status === 'Available' ? 'bg-cyan/10 text-cyan border border-cyan/20' :
+                      'bg-gray-100 text-text-muted border border-gray-200'
+                    }`}>{item.status}</span>
+                  </div>
+                  <p className="text-text-muted text-xs">{item.desc}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </motion.section>
