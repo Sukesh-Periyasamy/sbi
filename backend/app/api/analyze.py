@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from app.models.schemas import ThreatAnalysisResponse, ErrorResponse
 from app.services.cache import cache
 from app.services.threat_scorer import threat_scorer
+from app.services.threat_feeds import threat_feeds
 from app.services.analytics import analytics
 from app.core.security import verify_api_key
 from app.core.config import settings
@@ -102,7 +103,18 @@ async def analyze_domain(
     
     # Perform analysis
     try:
+        # Check threat intelligence feeds first (O(1) Redis lookup)
+        is_in_feed = await threat_feeds.is_known_phishing(domain)
+        
         score, verdict, confidence, reasons = threat_scorer.analyze(domain)
+        
+        # If domain is in threat feeds, boost score significantly
+        if is_in_feed:
+            score += 50
+            reasons.insert(0, "Known phishing domain (threat intelligence feed)")
+            if score >= 70:
+                verdict = "HIGH_RISK"
+                confidence = min(0.99, confidence + 0.2)
         
         # Build response
         response_data = {

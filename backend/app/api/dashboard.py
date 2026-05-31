@@ -378,3 +378,24 @@ async def simulate_attack(api_key: str = Depends(verify_api_key)):
             await cache.redis_client.delete(key)
 
     return {"status": "simulated", "events_injected": len(attacks)}
+
+
+# ─── Threat Feed Stats ─────────────────────────────────────────────────────────
+
+from app.services.threat_feeds import threat_feeds as tf_service
+
+
+@router.get("/feeds")
+async def dashboard_feeds(api_key: str = Depends(verify_api_key)):
+    """Threat intelligence feed statistics."""
+    stats = await tf_service.get_stats()
+    return {
+        "feeds": stats,
+        "sources": [
+            {"name": "OpenPhish", "url": "https://openphish.com", "domains": stats.get("openphish", 0)},
+            {"name": "URLhaus", "url": "https://urlhaus.abuse.ch", "domains": stats.get("urlhaus", 0)},
+            {"name": "PhishTank", "url": "https://phishtank.org", "domains": stats.get("phishtank", 0)},
+        ],
+        "total_domains": stats.get("total", 0),
+        "last_update": stats.get("last_update", "never"),
+    }

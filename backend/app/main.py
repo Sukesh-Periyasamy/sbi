@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.logging import logger
 from app.services.cache import cache
+from app.services.threat_feeds import threat_feeds
 from app.api import analyze, health, verify_package, dashboard
 
 
@@ -30,10 +31,14 @@ async def lifespan(app: FastAPI):
     # Connect to Redis
     await cache.connect()
     
+    # Start threat intelligence feed updater
+    await threat_feeds.start()
+    
     yield
     
     # Shutdown
     logger.info("Shutting down AnteClick Backend API")
+    await threat_feeds.stop()
     await cache.disconnect()
 
 
