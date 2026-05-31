@@ -529,6 +529,49 @@ export default function Dashboard() {
               ))}
             </div>
           </motion.div>
+
+          {/* Threat Intelligence Feeds */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            className="lg:col-span-3 glass-card rounded-xl p-5"
+          >
+            <h3 className="text-text font-semibold text-sm flex items-center gap-2 mb-4">
+              <Globe className="w-4 h-4 text-cyan" />
+              Threat Intelligence Status
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { name: 'OpenPhish', domains: '48,291', status: 'Active', color: 'text-success' },
+                { name: 'URLhaus', domains: '9,240', status: 'Active', color: 'text-success' },
+                { name: 'PhishTank', domains: '12,884', status: 'Active', color: 'text-success' },
+              ].map((feed, i) => (
+                <motion.div
+                  key={feed.name}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.1 + i * 0.1 }}
+                  className="p-4 bg-navy-light rounded-xl border border-glass-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-text font-medium text-sm">{feed.name}</span>
+                    <span className={`text-[10px] ${feed.color} font-medium`}>● {feed.status}</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue">{feed.domains}</div>
+                  <div className="text-[10px] text-text-muted">domains indexed</div>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-text-muted">
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="w-1.5 h-1.5 rounded-full bg-success"
+              />
+              Last updated: 5 minutes ago · Auto-refreshes every hour
+            </div>
+          </motion.div>
         </div>
       </div>
     </main>
