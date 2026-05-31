@@ -82,6 +82,10 @@ class AnteClickAccessibilityService : AccessibilityService() {
         private const val NAVIGATION_STABILITY_MS = 100L  // 100ms for fast detection
         private val HOST_REGEX = Regex("^[a-z0-9.-]+$")
         
+        // Developer testing mode — set to true to disable all cooldowns/dedup
+        // IMPORTANT: Set to false before release builds
+        private const val DEV_TESTING_MODE = false
+        
         // Known TLDs for URL validation
         private val KNOWN_TLDS = setOf(
             "com", "org", "net", "edu", "gov", "mil", "int",
@@ -224,7 +228,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
             return
         }
 
-        if (url == lastProcessedUrl && now - lastProcessedTime < URL_DEDUP_WINDOW_MS) {
+        if (!DEV_TESTING_MODE && url == lastProcessedUrl && now - lastProcessedTime < URL_DEDUP_WINDOW_MS) {
             Log.d(TAG, "URL in dedup window — skipped")
             return
         }
@@ -602,12 +606,15 @@ class AnteClickAccessibilityService : AccessibilityService() {
 
     private fun scoreAndAct(url: String, sourcePkg: String, eventToken: Long) {
         serviceScope.launch {
+            val startTime = System.currentTimeMillis()
+            
             if (!isEventSequenceActive(eventToken)) {
                 Log.d(TAG, "Stale token before scoring — skip: $url popupToken=$eventToken activeToken=${latestEventSequence.get()}")
                 return@launch
             }
 
             val result = ThreatScorer.score(url)
+            val scoreTime = System.currentTimeMillis()
 
             if (!isEventSequenceActive(eventToken)) {
                 Log.d(TAG, "Stale token after scoring — skip: $url popupToken=$eventToken activeToken=${latestEventSequence.get()}")
@@ -615,6 +622,7 @@ class AnteClickAccessibilityService : AccessibilityService() {
             }
 
             Log.d(TAG, "─────────────────────────────────")
+            Log.d(TAG, "⏱ TIMING: scoring=${scoreTime - startTime}ms")
             Log.d(TAG, "Package=$sourcePkg")
             Log.d(TAG, "Extracted URL=$url")
             Log.d(TAG, "Score=${result.score}")
@@ -643,13 +651,15 @@ class AnteClickAccessibilityService : AccessibilityService() {
                     return@launch
                 }
                 val now = System.currentTimeMillis()
-                if (inDedupWindow(popupDedupTimestamps, url, now, URL_DEDUP_WINDOW_MS)) {
+                if (!DEV_TESTING_MODE && inDedupWindow(popupDedupTimestamps, url, now, URL_DEDUP_WINDOW_MS)) {
                     Log.d(TAG, "Local popup dedup window — skipped: $url")
                     return@launch
                 }
                 
                 ThreatLogger.log(domain, "Phishing")
                 
+                val overlayTime = System.currentTimeMillis()
+                Log.d(TAG, "⏱ TIMING: total_to_overlay=${overlayTime - startTime}ms")
                 Log.d(TAG, "Overlay launch requested type=LOCAL token=$eventToken url=$url score=${result.score}")
                 Log.d(TAG, "⚠ Showing overlay [LOCAL] for: $url")
                 showOverlayIfTokenActive(

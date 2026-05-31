@@ -257,6 +257,8 @@ object OverlayWarningManager {
                         warning    = warning,
                         onLeaveWebsite = {
                             mainHandler.removeCallbacks(autoDismissRunnable)
+                            // Clear dedup so same URL can be detected again immediately
+                            synchronized(shownUrls) { shownUrls.remove(warning.url) }
                             dismissOnMainThread()
                             exitDangerousWebsite(context)
                         },
