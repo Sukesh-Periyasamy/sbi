@@ -6,7 +6,7 @@
 
 ## Core Functionality Statement
 
-AnteClick uses Android's Accessibility Service **exclusively** to read browser URL bars for real-time phishing detection. This is the only method available on Android to detect phishing URLs without replacing the user's browser or intercepting network traffic.
+AnteClick uses Android's Accessibility Service exclusively to read browser address bar text solely to identify phishing URLs in real-time. This is the only method available on Android to detect phishing URLs without replacing the user's browser or intercepting network traffic.
 
 ---
 
@@ -203,31 +203,31 @@ The Accessibility Service is the **only Play Store-compliant method** to provide
 
 ### Short Form (for Play Console form)
 ```
-AnteClick uses Android Accessibility Service exclusively to read browser URL bars for real-time phishing detection. Only URL text is accessed. No personal data, passwords, or browsing history is collected. Users must acknowledge a prominent disclosure before enabling the service.
+AnteClick uses Android Accessibility Service to read browser address bar text solely to identify phishing URLs. Only address bar text is accessed. No personal data, passwords, or browsing history is collected. Users must acknowledge a prominent disclosure before enabling the service.
 ```
 
 ### Extended Form (if requested by reviewer)
 ```
-AnteClick is a financial phishing protection application that detects suspicious banking websites in real-time. The Accessibility Service is used solely to:
+AnteClick is a financial phishing protection application that uses the Accessibility Service only to:
 
-1. Detect when a supported browser (Chrome, Firefox, Brave, etc.) is active
-2. Read the URL text from the browser's address bar
-3. Analyze the URL against 16 heuristic phishing signals
+1. Detect when a supported browser or in-app webview is active
+2. Read the address bar text from the active browser or webview
+3. Analyze the address bar text locally against 16 heuristic phishing signals
 4. Display a contextual warning overlay when a dangerous phishing site is detected
 
 The service does NOT:
 - Read passwords, OTPs, or form data
-- Monitor personal messages or chats
+- Access page content beyond the address bar
 - Record keystrokes or screen content
-- Access any data outside browser URL bars
+- Access any data outside address bar text
 - Store browsing history
 - Transmit personal information
 
 A prominent in-app disclosure screen explains the service's purpose and data access before the user enables it. The user must explicitly acknowledge this disclosure. The service can be disabled at any time from Android Settings.
 
 Privacy Policy: https://anteclick.app/privacy-policy
-```
 
+```
 ---
 
 ## Screenshots for Play Store Review
