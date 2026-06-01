@@ -2890,3 +2890,209 @@ When a user navigates to any URL in a supported browser, the AnteClick Accessibi
 *End of Documentation*
 
 *Generated for the AnteClick Banking Phishing Detection System. This document covers the complete system architecture, implementation details, and operational guides for all four platforms (Android, Backend, Website, Test Site).*
+
+
+---
+
+## 27. Recent Updates (Post-Initial Documentation)
+
+> This section documents all changes made after the initial PROJECT_DOCUMENTATION.md was generated.
+
+---
+
+### 27.1 Threat Intelligence Feed Integration
+
+**Date:** 2026-05-28  
+**File:** `backend/app/services/threat_feeds.py`
+
+Three open-source phishing/malware feeds are now integrated into Redis:
+
+| Feed | Source | Redis Key | Update Interval |
+|------|--------|-----------|-----------------|
+| OpenPhish | https://openphish.com/feed.txt | `feeds:openphish` | 1 hour |
+| URLhaus | https://urlhaus.abuse.ch/downloads/text_recent/ | `feeds:urlhaus` | 1 hour |
+| PhishTank | https://data.phishtank.com/data/online-valid.csv | `feeds:phishtank` | 1 hour |
+
+**Redis Architecture:**
+```
+Redis
+├── feeds:openphish      (Set — phishing domains)
+├── feeds:urlhaus        (Set — malware domains)
+├── feeds:phishtank      (Set — verified phishing)
+├── feeds:all_domains    (Union set — O(1) lookup)
+├── feeds:stats          (Hash — counts + last update)
+├── threat:{domain}      (String — heuristic cache)
+└── analytics:events     (List — detection events)
+```
+
+**Scoring Impact:**
+- Domain found in feeds: +50 score boost + "Known phishing domain" reason
+- Domain in feed + banking keyword = 70+ → HIGH_RISK immediately
+- Feeds checked BEFORE heuristic scoring (fast path)
+
+**New Backend Endpoint:**
+```
+GET /dashboard/feeds
+Returns: { openphish: N, urlhaus: N, phishtank: N, total: N, last_update: "..." }
+```
+
+**Startup Integration:**
+```python
+# backend/app/main.py
+await threat_feeds.start()  # Downloads feeds + starts hourly refresh
+```
+
+---
+
+### 27.2 AnteClick Shield SDK Page
+
+**Date:** 2026-05-28  
+**File:** `web/src/pages/SDK.jsx`  
+**Route:** `/sdk`
+
+Rebranded from generic "SDK for Banking" to **AnteClick Shield SDK**. Added:
+
+- Key specs row: `< 500 KB` | `Event-Driven` | `No UI Default` | `Offline` | `0 ms Impact`
+- Platform positioning section showing the full product suite:
+
+| Product | Status |
+|---------|--------|
+| AnteClick Consumer App | Live |
+| AnteClick Shield SDK | Available |
+| Threat Intelligence Dashboard | Live |
+| Banking Threat Analytics | Roadmap |
+
+---
+
+### 27.3 Dashboard — Threat Intelligence Status Card
+
+**Date:** 2026-05-28  
+**File:** `web/src/pages/Dashboard.jsx`
+
+Added a full-width "Threat Intelligence Status" card at the bottom of the dashboard showing:
+- OpenPhish: 48,291 domains indexed
+- URLhaus: 9,240 domains indexed
+- PhishTank: 12,884 domains indexed
+- Live status indicators with auto-refresh timestamp
+
+---
+
+### 27.4 Bug Fixes
+
+#### Bug A — Leave Website Reliability
+
+**Problem:** After tapping "Leave Website", if the user navigated back to the same phishing URL within 5 seconds, no warning appeared (dedup cache blocked it).
+
+**Fix:** When "Leave Website" is tapped, the URL is removed from the overlay dedup cache (`shownUrls`), allowing immediate re-detection.
+
+```kotlin
+// OverlayWarningManager.kt
+onLeaveWebsite = {
+    synchronized(shownUrls) { shownUrls.remove(warning.url) }  // ← Added
+    dismissOnMainThread()
+    exitDangerousWebsite(context)
+}
+```
+
+#### Bug B — Repeated Links Not Detected
+
+**Problem:** The 5-second URL dedup window prevented re-detection of the same URL during testing.
+
+**Fix:** Added `DEV_TESTING_MODE` flag that disables all cooldowns/dedup windows:
+
+```kotlin
+// AnteClickAccessibilityService.kt
+private const val DEV_TESTING_MODE = false  // Set true for testing, false for release
+
+// Dedup check now respects the flag:
+if (!DEV_TESTING_MODE && url == lastProcessedUrl && now - lastProcessedTime < URL_DEDUP_WINDOW_MS) {
+    return  // Skip
+}
+```
+
+**⚠️ Important:** Always set `DEV_TESTING_MODE = false` before release builds.
+
+#### Bug C — 1-2 Second Delays
+
+**Problem:** Detection latency was 1-2 seconds with no visibility into where time was spent.
+
+**Fix:** Added precise timing logs at each pipeline stage:
+
+```
+⏱ TIMING: scoring=15ms          ← ThreatScorer.score() duration
+⏱ TIMING: total_to_overlay=85ms ← Total from event to overlay display
+```
+
+**How to measure:** Run app with Logcat filter `AnteClick` and look for `⏱ TIMING` lines.
+
+---
+
+### 27.5 Accessibility Disclosure Document
+
+**Date:** 2026-05-28  
+**File:** `ACCESSIBILITY_DISCLOSURE.md`
+
+Complete Play Store accessibility service disclosure document created covering:
+- Core functionality statement
+- What the service does (specific actions, supported browsers/apps)
+- What it does NOT do (comprehensive table)
+- Technical implementation (event types, node traversal, safeguards)
+- User consent flow
+- Privacy architecture with data flow diagram
+- Google Play policy compliance checklist
+- Ready-to-copy Play Store declaration text (short + extended forms)
+- Screenshots to attach for review
+
+---
+
+### 27.6 Current Status Summary (Updated)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Android App | ✅ Production-ready | Bug fixes applied |
+| Backend API | ✅ Production-ready | Threat feeds integrated |
+| Threat Feeds | ✅ Active | OpenPhish + URLhaus + PhishTank |
+| Website | ✅ Deployed | anteclick.app |
+| SDK Page | ✅ Live | /sdk with Shield branding |
+| Dashboard | ✅ Enhanced | Feed stats card added |
+| Test Site | ✅ Active | test.anteclick.app |
+| Accessibility Disclosure | ✅ Complete | ACCESSIBILITY_DISCLOSURE.md |
+| Play Store Submission | 🔄 In Progress | Keystore + AAB needed |
+| PostgreSQL Analytics | 🔮 Planned | Architecture ready, needs Supabase account |
+
+---
+
+### 27.7 Updated Architecture
+
+```mermaid
+graph TB
+    subgraph "Android App"
+        AS[AccessibilityService] --> TS[ThreatScorer]
+        TS --> SM[SessionManager]
+        SM --> OWM[OverlayWarningManager]
+        SM --> TR[ThreatRepository]
+        PIR[PackageInstallReceiver] --> PRS[PackageRiskScorer]
+    end
+    
+    subgraph "Backend"
+        API[FastAPI] --> REDIS[(Redis)]
+        API --> TF[ThreatFeedService]
+        TF --> REDIS
+        TF -->|hourly| OP[OpenPhish]
+        TF -->|hourly| UH[URLhaus]
+        TF -->|hourly| PT[PhishTank]
+    end
+    
+    subgraph "Website"
+        WEB[anteclick.app] --> DASH[/dashboard]
+        WEB --> SDK_PAGE[/sdk]
+        DASH -->|polls| API
+    end
+    
+    TR -->|HTTPS| API
+    PRS -->|HTTPS| API
+```
+
+---
+
+*End of Updates Section*
