@@ -432,14 +432,14 @@ export default function SDK() {
           className="text-center"
         >
           <a
-            href="mailto:sdk@anteclick.app"
+            href="mailto:hello@anteclick.app"
             className="inline-flex items-center gap-2 px-8 py-4 bg-blue rounded-xl text-text font-semibold hover:bg-blue-light transition-all glow-blue"
           >
             <Building2 className="w-5 h-5" />
             Contact for SDK Integration
             <ArrowRight className="w-4 h-4" />
           </a>
-          <p className="mt-4 text-text-muted text-xs">sdk@anteclick.app</p>
+          <p className="mt-4 text-text-muted text-xs">hello@anteclick.app</p>
         </motion.div>
       </div>
     </main>

@@ -314,7 +314,7 @@ export default function TermsOfService() {
               <h2 className="text-xl font-semibold text-text mb-3">16. Contact</h2>
               <p>For questions, feedback, or support regarding AnteClick:</p>
               <div className="mt-3 p-4 glass-card rounded-xl">
-                <p><strong className="text-text">Email:</strong> support@anteclick.app</p>
+                <p><strong className="text-text">Email:</strong> hello@anteclick.app</p>
                 <p className="mt-1"><strong className="text-text">Website:</strong> https://anteclick.app</p>
               </div>
             </section>

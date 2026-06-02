@@ -234,7 +234,7 @@ export default function PrivacyPolicy() {
               <h2 className="text-xl font-semibold text-white mb-3">14. Contact Us</h2>
               <p>If you have questions regarding this Privacy Policy, please contact:</p>
               <div className="mt-3 p-4 glass-card rounded-xl">
-                <p><strong className="text-white">Email:</strong> support@anteclick.app</p>
+                <p><strong className="text-white">Email:</strong> hello@anteclick.app</p>
                 <p className="mt-1"><strong className="text-white">Website:</strong> https://anteclick.app</p>
               </div>
             </section>

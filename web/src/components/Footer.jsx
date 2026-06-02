@@ -63,7 +63,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li><Link to="/privacy-policy" className="text-text-muted text-sm hover:text-cyan transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms-and-conditions" className="text-text-muted text-sm hover:text-cyan transition-colors">Terms & Conditions</Link></li>
-              <li><a href="mailto:contact@anteclick.com" className="text-text-muted text-sm hover:text-cyan transition-colors">Contact</a></li>
+              <li><a href="mailto:hello@anteclick.app" className="text-text-muted text-sm hover:text-cyan transition-colors">Contact</a></li>
             </ul>
           </div>
         </div>
