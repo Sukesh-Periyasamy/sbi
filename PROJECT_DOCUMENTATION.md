@@ -3074,19 +3074,21 @@ graph TB
         PIR[PackageInstallReceiver] --> PRS[PackageRiskScorer]
     end
     
-    subgraph "Backend"
-        API[FastAPI] --> REDIS[(Redis)]
-        API --> TF[ThreatFeedService]
-        TF --> REDIS
-        TF -->|hourly| OP[OpenPhish]
-        TF -->|hourly| UH[URLhaus]
-        TF -->|hourly| PT[PhishTank]
+    subgraph "FastAPI Backend"
+        API[FastAPI Router] --> RC[Redis Cache / Whitelist]
+        RC -->|miss| TF[ThreatFeeds]
+        TF -->|O(1) match| OP[OpenPhish]
+        TF -->|O(1) match| UH[URLhaus]
+        TF -->|O(1) match| PT[PhishTank]
+        API -->|asyncio.create_task| BG[Background Enrichment]
+        BG -->|acquire lock| BG_ENR[RDAP + DNS + SSL + HTML Scrape]
+        BG_ENR -->|update cache| RC
+        BG_ENR -->|update history| HIST[Redis History List]
     end
     
-    subgraph "Website"
-        WEB[anteclick.app] --> DASH[/dashboard]
-        WEB --> SDK_PAGE[/sdk]
-        DASH -->|polls| API
+    subgraph "Dashboard & Analytics"
+        WEB[React Frontend] --> DASH[/dashboard]
+        DASH -->|API| API
     end
     
     TR -->|HTTPS| API
@@ -3095,4 +3097,27 @@ graph TB
 
 ---
 
-*End of Updates Section*
+## 28. Version 2.0: Threat Intelligence Engine Specs
+
+### 28.1 Overview
+AnteClick v2.0 transitions the platform from a real-time phishing detector into a complete **Threat Intelligence Platform**. It establishes a background enrichment pipeline running on FastAPI that extracts deep domain attributes asynchronously without increasing real-time evaluation latency (< 300ms).
+
+### 28.2 Components
+
+#### A) Tranco Safe Domains Integration
+* **Mechanism:** Whitelist-first logic. If a domain matches the imported Tranco top 10,000 domains (checked via O(1) Redis set membership `safe_domains`), the request returns `SAFE` instantly with the reason `"Trusted popular domain (Tranco whitelist)"`.
+* **Idempotency:** Implemented `scripts/import_tranco.py` to stream top 10,000 domains, loading them into a PostgreSQL table (`safe_domains`) with indexing (`idx_safe_domain` and `idx_safe_rank`) and pipelining them into Redis.
+
+#### B) Background Enrichment Pipeline
+Upon returning the initial verdict, `asyncio.create_task()` triggers an enrichment pipeline executing concurrently with a Semaphore limit of 3:
+1. **RDAP Lookup:** Fetches registrar, country, and registration timestamp with 429 backoff handling and failure caching.
+2. **DNS Resolving:** Queries A, AAAA, MX, NS, and TXT records via Cloudflare/Google DNS-over-HTTPS. Caches `NXDOMAIN`/`SERVFAIL` statuses.
+3. **SSL Inspection:** Connects to port 443 with a 3s timeout to inspect validity, wildcard status, self-signed signatures, and certificate expiration.
+4. **HTML Content Scraping:** Downloads up to 500KB of HTML content with Content-Type checks (skips binaries/images) and extracts inputs (passwords, OTPs, PANs, UPIs), link favicons, redirects, and iframe counts.
+5. **Brand Detection:** Scans text, titles, and image alts using regex to detect major Indian bank targets.
+
+#### C) Advanced Analytics and Threat History
+* **Clustering & Campaigns:** Tracks counters in Redis for brand/registrar combinations (e.g. `campaign:sbi:namecheap`). If domain counts exceed 20 within 30 days, it boosts threat scores by +15.
+* **Reputation Aging:** Scores decay dynamically by 2 points per day since the last update (capped at 80/40) to prevent stale records.
+* **Telemetry API & History:** Stores version history (last 20 states) in Redis lists `intel:history:<domain>` and exposes details via `/intel/domain/{domain}` and `/dashboard/history`.
+

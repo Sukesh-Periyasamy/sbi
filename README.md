@@ -1,198 +1,134 @@
-# AnteClick
+# 🛡️ AnteClick v2.0: Real-Time Banking Phishing Protection & Threat Intelligence Platform
 
-Android phishing detection app that protects users from financial fraud by monitoring browser URL bars in real-time using an Accessibility Service.
+AnteClick is a production-grade, end-to-end security platform designed to protect Indian banking customers from financial fraud. The platform combines a low-latency Android accessibility protection service with a high-performance, background threat intelligence enrichment engine, public search explorers, and an analytics dashboard.
 
-## How It Works
+---
 
-```
-Browser URL bar → AccessibilityService → ThreatScorer (16 heuristics) → Backend verification → Overlay warning
-```
-
-1. The Accessibility Service reads URLs from browser address bars (Chrome, Firefox, Brave, Telegram, WhatsApp)
-2. ThreatScorer applies 16 heuristic signals (banking keywords, suspicious TLDs, typo domains, URL shorteners, homograph attacks, etc.)
-3. HIGH_RISK URLs trigger an instant overlay warning; WARNING URLs are verified against the backend API
-4. SAFE domains are whitelisted and skip all further processing
-
-## Project Structure
+## 🏗️ Platform Architecture Overview
 
 ```
-├── app/                          # Android app (Kotlin, Jetpack Compose)
+                      ┌─────────────────────────────────────────┐
+                      │               Android App               │
+                      └────────────────────┬────────────────────┘
+                                           │ (Real-Time URL)
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │              FastAPI Backend            │
+                      └───────┬─────────────────────────┬───────┘
+                              │                         │
+            (O(1) Whitelist)  ▼                         ▼  (O(1) Threat Feeds)
+                  ┌──────────────────────┐   ┌──────────────────────┐
+                  │  Tranco Safe Domains │   │     Phishing Feeds   │
+                  └──────────┬───────────┘   └──────────┬───────────┘
+                             │                          │
+                    (Match)  ▼                 (Match)  ▼
+                        [ SAFE ]                     [ HIGH_RISK ]
+                             │                          │
+                             ▼ (Skip Enrichment)        ▼ (Bypass Heuristics)
+                      ┌─────────────────────────────────────────┐
+                      │            Heuristics Engine            │
+                      └────────────────────┬────────────────────┘
+                                           │ (Verdict Returned)
+                                           ▼
+                                ┌─────────────────────┐
+                                │ asyncio.create_task │
+                                └──────────┬──────────┘
+                                           │
+                                           ▼ (Background Thread Pool)
+                      ┌─────────────────────────────────────────┐
+                      │  Threat Intelligence Enrichment Engine  │
+                      │  (RDAP + DNS + SSL + Content Scrape)    │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │     Redis Cache & History Database      │
+                      └────────────────────┬────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │       React Analytics Dashboard         │
+                      └─────────────────────────────────────────┘
+```
+
+---
+
+## ✨ Key Features (v2.0.0)
+
+### 📲 Real-Time Android Protection
+* **Accessibility URL Monitoring:** Monitors browser and webview address bars in real-time.
+* **Instant Overlay Warning:** Renders a security warning above dangerous links in `< 300ms`.
+* **Fake App Detection:** Intercepts package installations to warn against sideloaded phishing APKs.
+
+### 🧠 Threat Intelligence Enrichment Engine
+* **Phishing Feed Checks:** O(1) Redis verification against OpenPhish, URLHaus, and PhishTank.
+* **Tranco Safe Domains:** Bypasses scans for the top 10,000 popular domains.
+* **Resilient Scraping Pipeline:** Streams HTML pages up to 500KB with content type verification (skips PDFs, images, binaries).
+* **SSL & Domain Analysis:** Extracts certificate expiration status and queries RDAP for domain age.
+* **Active Campaign Detection:** Flags clusters of domains targeting specific brands using specific registrars.
+* **Reputation Aging:** Scores decay dynamically by 2 points/day since last check to maintain fresh state.
+* **Telemetry Endpoints:** Tracks pipeline metrics (Heuristics duration, Redis times, enrichment queues, etc.).
+
+---
+
+## 📂 Project Structure
+
+```
+├── app/                          # Android app (Kotlin, Jetpack Compose, Material 3)
 │   ├── src/main/java/com/anteclick/app/
-│   │   ├── service/             # AccessibilityService (URL detection)
-│   │   ├── scoring/             # ThreatScorer, signals, verdicts
-│   │   ├── backend/             # ThreatRepository, API client, cache
-│   │   ├── session/             # SessionManager (event processing)
-│   │   ├── warnings/            # Overlay + Activity warnings
-│   │   ├── ui/                  # Compose UI (theme, disclosure screen)
-│   │   ├── utils/               # URL extraction utilities
-│   │   ├── MainActivity.kt      # Dashboard
-│   │   └── ThreatLogger.kt      # Persistent threat history
-│   └── src/test/                # Property-based tests (Kotest)
-├── backend/                      # FastAPI backend (Python)
-│   ├── app/                     # API source code
-│   ├── tests/                   # pytest test suite
-│   ├── docs/                    # Architecture & deployment guides
-│   ├── scripts/                 # Deploy scripts (Railway, etc.)
-│   └── README.md                # Backend docs
-├── web/                          # Marketing website (React + Vite)
-│   ├── src/sections/            # Hero, Features, HowItWorks, FAQ, etc.
-│   ├── src/pages/               # Home, Privacy Policy, Terms of Service
-│   └── src/components/          # Navbar, Footer, ScrollToTop
-├── docs/                         # Historical project documentation
-├── scripts/                      # Utility scripts (rebranding, etc.)
-└── .kiro/specs/                  # Spec-driven development artifacts
+│   │   ├── service/             # AccessibilityService (Realtime URL monitoring)
+│   │   ├── scoring/             # Heuristic engines & signals
+│   │   └── warnings/            # Native overlay warning window managers
+├── backend/                      # FastAPI backend (Python 3.11+)
+│   ├── app/
+│   │   ├── api/                 # /analyze, /verify-package, /intel, /dashboard
+│   │   ├── services/            # Cache, Enrichment, Scraper, Feeds, Scorer
+│   │   └── utils/               # Normalization and helper functions
+│   └── tests/                   # Pytest suite
+├── web/                          # Marketing & Dashboard site (React + Vite + Framer Motion)
+├── docs/                         # Extended technical design guides
 ```
 
-## Tech Stack
+---
 
-| Layer | Technology |
-|-------|-----------|
-| **Android App** | Kotlin, Jetpack Compose, Material 3 |
-| **Networking** | OkHttp + Retrofit + Gson |
-| **Async** | Kotlin Coroutines |
-| **Testing** | Kotest (property-based), JUnit 5, MockK |
-| **Backend** | FastAPI, Redis, Python 3.11+ |
-| **Website** | React 19, Vite, Tailwind CSS 4, Framer Motion |
-| **Min SDK** | 31 (Android 12) |
-| **Target SDK** | 35 (Android 15) |
+## 🛠️ Technology Stack
 
-## Building
+| Component | Technology |
+|---|---|
+| **Android Client** | Kotlin, Jetpack Compose, OkHttp, Retrofit, Kotest |
+| **Backend API** | Python, FastAPI, Uvicorn, SlowAPI, Psycopg2 |
+| **Datastore** | Redis (Hot Cache & Telemetry), PostgreSQL (Staging/Production) |
+| **Frontend** | React 18+, Vite, Framer Motion, Tailwind CSS |
+| **Analysis** | DNS-over-HTTPS (DoH), Socket-level SSL, Python HTMLParser |
 
-### Android App
+---
 
-**Prerequisites:** Android Studio Ladybug+, JDK 11+, Android SDK 35
+## 🚀 Quick Start
 
-```bash
-# Debug build
-./gradlew :app:assembleDebug
-
-# Release build (requires signing config)
-./gradlew :app:assembleRelease
-```
-
-For release builds, create `local.properties` with:
-
-```properties
-KEYSTORE_FILE=path/to/your/keystore.jks
-KEYSTORE_PASSWORD=your_keystore_password
-KEY_ALIAS=your_key_alias
-KEY_PASSWORD=your_key_password
-BACKEND_URL=https://api.anteclick.com/
-API_KEY=your_api_key
-```
-
-If no keystore is configured, the release build falls back to debug signing.
-
-### Backend
+### 1. Backend Setup (Local Dev)
+Make sure Python 3.11+ is installed.
 
 ```bash
 cd backend
-docker-compose up -d
-# API available at http://localhost:8000
-# Docs at http://localhost:8000/docs
-```
-
-See [`backend/README.md`](backend/README.md) for full setup and deployment options.
-
-### Website
-
-```bash
-cd web
-npm install
-npm run dev      # Dev server at http://localhost:5173
-npm run build    # Production build to dist/
-```
-
-Deploy to Vercel:
-```bash
-cd web
-npx vercel
-```
-
-## Configuration
-
-### Android App (BuildConfig)
-
-| Field | Source | Default |
-|-------|--------|---------|
-| `BACKEND_URL` | `local.properties` or env var | `https://api.anteclick.com/` |
-| `API_KEY` | `local.properties` or env var | `""` (empty) |
-
-### Backend (.env)
-
-| Variable | Required | Default |
-|----------|----------|---------|
-| `API_KEY` | Yes | — |
-| `REDIS_URL` | Yes | `redis://localhost:6379` |
-| `ENVIRONMENT` | No | `production` |
-| `RATE_LIMIT_PER_MINUTE` | No | `60` |
-
-## Testing
-
-### Android (44 tests)
-
-```bash
-./gradlew :app:test
-```
-
-| Suite | Purpose |
-|-------|---------|
-| `PlayStoreReadinessPropertyTest` | All 12 Play Store readiness conditions |
-| `ThreatScorerPreservationTest` | Scoring determinism, thresholds, known domains |
-| `SessionManagerPreservationTest` | Event processing, confidence, deduplication |
-| `BackendFallbackPreservationTest` | HTTP errors, timeouts, local fallback |
-| `ReputationCachePreservationTest` | In-flight dedup, cache behavior |
-| `ThreatLoggerPersistenceTest` | SharedPreferences persistence |
-
-### Backend (11 tests)
-
-```bash
-cd backend
+python -m venv venv
+.\venv\Scripts\activate
 pip install -r requirements.txt
-pytest tests/ -v
+cp .env.example .env
+# Set API_KEY and REDIS_URL in .env
+python -m uvicorn app.main:app --reload
 ```
 
-## Key Features
+* **API Docs:** http://localhost:8000/docs
+* **Unit Tests:** `pytest tests/ -v`
 
-- **Real-time phishing detection** — monitors browser URL bars via Accessibility Service
-- **16 heuristic signals** — banking keywords, suspicious TLDs, typo domains, URL shorteners, raw IPs, homograph attacks, entropy analysis, punycode detection
-- **Backend verification** — WARNING-level threats verified against cloud API with Redis cache
-- **Offline fallback** — local scoring continues when backend is unreachable
-- **Instant overlay warnings** — TYPE_ACCESSIBILITY_OVERLAY, appears in under 300ms
-- **Accessibility disclosure** — compliant with Google Play Accessibility Service policy
-- **Persistent threat history** — SharedPreferences-backed, survives app restarts (100 entries)
-- **HTTPS-only** — network security config enforces no cleartext traffic
-- **Privacy-first** — only URL text analyzed, no personal data collected
-- **Release-ready** — signed APK/AAB, ProGuard optimized, launcher icon included
+### 2. Import Whitelist Datasets
+Run the idempotent Tranco Top 10k whitelist importer:
+```bash
+python scripts/import_tranco.py
+```
 
-## Security
-
-- No MITM — traffic is never decrypted or modified
-- No credential storage — the app never sees passwords or form data
-- Only URL text is read from browser address bars
-- Trusted bank domain whitelist (SBI, HDFC, ICICI, Axis, Kotak, Paytm)
-- API key authentication (`X-API-Key` header) for backend
-- `allowBackup=false` — no sensitive data in cloud backups
-- Network security config blocks cleartext HTTP
-- Rate limiting (60/min, 1000/hr per IP) on backend
-
-## Website
-
-The marketing website is at `web/` — a React + Vite + Tailwind CSS site with:
-
-- Interactive phone demo showing safe vs phishing link detection flow
-- Animated "How It Works" section with hover phone previews
-- Features, security principles, stats, FAQ sections
-- Privacy Policy and Terms of Service pages
-- Dark navy cybersecurity theme, fully responsive
-- Vercel-ready (`vercel.json` included)
-
-## Legal
-
-- **Privacy Policy:** Available in-app and at `/privacy-policy` on the website
-- **Terms of Service:** Available at `/terms` on the website
-- Compliant with Google Play Store policies, IT Act 2000 (India), DPDP Act 2023
-
-## License
-
-Proprietary — AnteClick Banking Phishing Detection System.
+### 3. Android Setup
+1. Open the `/app` folder in Android Studio.
+2. Allow Gradle sync to complete.
+3. Configure `BACKEND_URL` and `API_KEY` in `local.properties`.
+4. Build and run debug variant on your device.
