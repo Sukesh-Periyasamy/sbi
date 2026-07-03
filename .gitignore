@@ -33,3 +33,14 @@ replay_pid*.log
 
 .vercel
 .env*
+
+# Python & virtual environment
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datasets
+tranco_L5NL4-1m.csv/
+*.csv

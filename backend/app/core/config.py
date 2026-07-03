@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     redis_cache_ttl: int = 600  # 10 minutes
     
+    # Database (PostgreSQL)
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/postgres"
+    
     # Rate Limiting
     rate_limit_per_minute: int = 60
     rate_limit_per_hour: int = 1000

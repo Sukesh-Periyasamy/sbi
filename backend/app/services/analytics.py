@@ -129,7 +129,7 @@ class AnalyticsLogger:
         """Get today's aggregated stats."""
         try:
             if not cache.redis_client:
-                return {"threats_blocked": 0, "high_risk": 0, "package_threats": 0}
+                return {"threats_blocked": 0, "high_risk": 0, "package_threats": 0, "whitelist_hits": 0}
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             stats_key = f"{self.STATS_KEY}:{today}"
             stats = await cache.redis_client.hgetall(stats_key)
@@ -137,9 +137,23 @@ class AnalyticsLogger:
                 "threats_blocked": int(stats.get("threats_blocked", 0)),
                 "high_risk": int(stats.get("high_risk", 0)),
                 "package_threats": int(stats.get("package_threats", 0)),
+                "whitelist_hits": int(stats.get("whitelist_hits", 0)),
             }
         except Exception:
-            return {"threats_blocked": 0, "high_risk": 0, "package_threats": 0}
+            return {"threats_blocked": 0, "high_risk": 0, "package_threats": 0, "whitelist_hits": 0}
+
+    async def log_whitelist_hit(self, domain: str):
+        """Log a whitelist safe domain hit to Redis analytics"""
+        try:
+            if not cache.redis_client:
+                return
+            await cache.redis_client.incr("analytics:whitelist_hits")
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            stats_key = f"{self.STATS_KEY}:{today}"
+            await cache.redis_client.hincrby(stats_key, "whitelist_hits", 1)
+        except Exception as e:
+            logger.debug(f"Failed to log whitelist hit: {e}")
+
 
 
 # Global instance

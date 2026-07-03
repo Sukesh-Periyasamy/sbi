@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, Depends, HTTPException, status, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from datetime import datetime, timezone
+import asyncio
 
 from app.models.schemas import ThreatAnalysisResponse, ErrorResponse
 from app.services.cache import cache
@@ -71,15 +72,9 @@ async def analyze_domain(
     Returns:
         ThreatAnalysisResponse with analysis results
     """
-    # Normalize domain
-    domain = domain.lower().strip()
-    
-    # Remove protocol if present
-    if "://" in domain:
-        domain = domain.split("://")[1]
-    
-    # Remove path if present
-    domain = domain.split("/")[0]
+    # Normalize domain using the shared normalization module
+    from app.utils.normalization import normalize_domain
+    domain = normalize_domain(domain)
     
     # Validate domain format
     if not domain or "." not in domain:
@@ -99,22 +94,76 @@ async def analyze_domain(
         logger.info(f"Cache hit for domain: {domain}")
         cached_result["cached"] = True
         cached_result["timestamp"] = datetime.now(timezone.utc)
+        
+        # Freshness Check: Refresh background intelligence if older than 7 days
+        try:
+            from app.services.intel_cache import intel_cache
+            from app.services.enrichment import enrich_domain
+            # Run in a task so it doesn't block cache hit response path
+            async def check_freshness_task():
+                intel_data = await intel_cache.get_intel(domain)
+                if intel_data and intel_data.get("last_checked"):
+                    try:
+                        last_ch = datetime.fromisoformat(intel_data["last_checked"].replace("Z", "+00:00"))
+                        if (datetime.now(timezone.utc) - last_ch).days > 7:
+                            logger.info(f"Intel for {domain} is older than 7 days. Enqueueing refresh.")
+                            await enrich_domain(domain)
+                    except Exception:
+                        pass
+            asyncio.create_task(check_freshness_task())
+        except Exception as e:
+            logger.debug(f"Freshness check failed: {e}")
+
         return ThreatAnalysisResponse(**cached_result)
     
     # Perform analysis
     try:
-        # Check threat intelligence feeds first (O(1) Redis lookup)
+        # A) Check threat intelligence feeds first (O(1) Redis lookup)
         is_in_feed = await threat_feeds.is_known_phishing(domain)
-        
-        score, verdict, confidence, reasons = threat_scorer.analyze(domain)
-        
-        # If domain is in threat feeds, boost score significantly
         if is_in_feed:
-            score += 50
-            reasons.insert(0, "Known phishing domain (threat intelligence feed)")
-            if score >= 70:
-                verdict = "HIGH_RISK"
-                confidence = min(0.99, confidence + 0.2)
+            response_data = {
+                "domain": domain,
+                "risk": "HIGH_RISK",
+                "confidence": 0.99,
+                "score": 100,
+                "source": "backend-feed",
+                "reasons": ["Known phishing domain (threat intelligence feed)"],
+                "timestamp": datetime.now(timezone.utc),
+                "cached": False
+            }
+            await cache.set(cache_key, response_data, ttl=30 * 24 * 3600)
+            return ThreatAnalysisResponse(**response_data)
+
+        # B) Check Redis safe domain (Tranco whitelist)
+        is_safe_domain = False
+        if cache.redis_client:
+            try:
+                is_safe_domain = await cache.redis_client.sismember("safe_domains", domain)
+            except Exception as ce:
+                logger.error(f"Redis safe_domains check failed: {ce}")
+
+        if is_safe_domain:
+            # Log whitelist hit for dashboard analytics
+            try:
+                await analytics.log_whitelist_hit(domain)
+            except Exception:
+                pass
+                
+            response_data = {
+                "domain": domain,
+                "risk": "SAFE",
+                "confidence": 0.99,
+                "score": 0,
+                "source": "backend-whitelist",
+                "reasons": ["Trusted popular domain (Tranco whitelist)"],
+                "timestamp": datetime.now(timezone.utc),
+                "cached": False
+            }
+            await cache.set(cache_key, response_data, ttl=24 * 3600)
+            return ThreatAnalysisResponse(**response_data)
+
+        # C) Otherwise continue with heuristics
+        score, verdict, confidence, reasons = threat_scorer.analyze(domain)
         
         # Build response
         response_data = {
@@ -128,11 +177,26 @@ async def analyze_domain(
             "cached": False
         }
         
-        # Cache result
-        await cache.set(cache_key, response_data)
+        # Adaptive TTL selection
+        if verdict == "HIGH_RISK":
+            ttl = 30 * 24 * 3600
+        elif verdict == "WARNING":
+            ttl = 7 * 24 * 3600
+        else:
+            ttl = 24 * 3600
+
+        # Cache result with adaptive TTL
+        await cache.set(cache_key, response_data, ttl=ttl)
         
         logger.info(f"Analysis complete: {domain} -> {verdict} (score: {score})")
         
+        # Trigger background enrichment asynchronously (does not block response)
+        try:
+            from app.services.enrichment import enrich_domain
+            asyncio.create_task(enrich_domain(domain))
+        except Exception as e:
+            logger.error(f"Failed to trigger enrichment task for {domain}: {e}")
+
         # Async analytics logging (fire-and-forget, never blocks detection)
         if verdict != "SAFE":
             target_bank = next((kw.upper() for kw in ["sbi", "hdfc", "icici", "axis", "paytm", "phonepe"] if kw in domain), "Unknown")
