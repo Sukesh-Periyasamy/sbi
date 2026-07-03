@@ -383,9 +383,11 @@ class TestFailureModes:
             "has\nnewline.com",
         ]
         
+        import urllib.parse
         for domain in malformed_domains:
+            encoded_domain = urllib.parse.quote(domain)
             response = client.get(
-                f"/analyze?domain={domain}",
+                f"/analyze?domain={encoded_domain}",
                 headers={"X-API-Key": mock_api_key}
             )
             # Should return 400, not 500

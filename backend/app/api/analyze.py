@@ -128,7 +128,7 @@ async def analyze_domain(
                 "score": 100,
                 "source": "backend-feed",
                 "reasons": ["Known phishing domain (threat intelligence feed)"],
-                "timestamp": datetime.now(timezone.utc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "cached": False
             }
             await cache.set(cache_key, response_data, ttl=30 * 24 * 3600)
@@ -156,7 +156,7 @@ async def analyze_domain(
                 "score": 0,
                 "source": "backend-whitelist",
                 "reasons": ["Trusted popular domain (Tranco whitelist)"],
-                "timestamp": datetime.now(timezone.utc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "cached": False
             }
             await cache.set(cache_key, response_data, ttl=24 * 3600)
@@ -173,7 +173,7 @@ async def analyze_domain(
             "score": score,
             "source": "backend",
             "reasons": reasons,
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "cached": False
         }
         
