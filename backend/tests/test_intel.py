@@ -39,6 +39,23 @@ def test_intel_endpoint_authorized(mock_get, client: TestClient, api_headers: di
 
 def test_dashboard_campaigns(client: TestClient, api_headers: dict):
     """Verify /dashboard/campaigns endpoint returns active campaigns list"""
+    from app.database.session import SessionLocal
+    from app.database.models import Campaign
+    db = SessionLocal()
+    try:
+        if not db.query(Campaign).filter_by(campaign_name="Campaign SBI-Namecheap").first():
+            db.add(Campaign(
+                campaign_name="Campaign SBI-Namecheap",
+                target_brand="SBI",
+                registrar="Namecheap Inc.",
+                country="IN",
+                domains_count=5,
+                status="Active"
+            ))
+            db.commit()
+    finally:
+        db.close()
+
     response = client.get("/dashboard/campaigns", headers=api_headers)
     assert response.status_code == 200
     data = response.json()
