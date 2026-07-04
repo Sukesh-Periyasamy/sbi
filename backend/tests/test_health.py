@@ -13,7 +13,7 @@ def test_health_check(client: TestClient):
     data = response.json()
     
     assert "status" in data
-    assert data["version"] == "1.0.0"
+    assert data["version"] == "2.0.0"
     assert "redis_connected" in data
     assert "timestamp" in data
 
@@ -46,4 +46,4 @@ def test_root_endpoint(client: TestClient):
     data = response.json()
     
     assert data["service"] == "AnteClick Backend API"
-    assert data["version"] == "1.0.0"
+    assert data["version"] == "2.0.0"
