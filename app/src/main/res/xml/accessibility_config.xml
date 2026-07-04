@@ -26,4 +26,5 @@
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
     android:accessibilityFlags="flagReportViewIds"
     android:canRetrieveWindowContent="true"
+    android:packageNames="com.android.chrome,org.mozilla.firefox,com.sec.android.app.sbrowser,com.microsoft.emmx,com.brave.browser,com.opera.browser,com.opera.mini.native,com.miui.hybrid,com.mi.globalbrowser,org.telegram.messenger,org.telegram.messenger.web,com.whatsapp,com.instagram.android,com.facebook.katana,com.google.android.gm,com.twitter.android,com.discord,com.snapchat.android"
     android:description="@string/accessibility_service_description" />
