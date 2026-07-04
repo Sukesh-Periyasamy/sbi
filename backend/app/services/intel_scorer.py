@@ -1,5 +1,5 @@
 """
-intel_scorer.py - Computes threat intelligence risk scores with dynamic reputation aging.
+intel_scorer.py - Computes threat intelligence risk scores and 0-100 Trust Scores.
 """
 from datetime import datetime, timezone
 from typing import Dict, Any, List
@@ -11,7 +11,7 @@ SUSPICIOUS_REGISTRARS = [
 ]
 
 class IntelScorerService:
-    """Evaluates various intelligence signals to produce a consolidated risk score with reputation aging"""
+    """Evaluates various intelligence signals to produce a consolidated risk score and trust score"""
 
     def calculate_score(
         self, 
@@ -21,7 +21,7 @@ class IntelScorerService:
         campaign_detected: bool = False
     ) -> Dict[str, Any]:
         """
-        Calculates threat risk score based on collected signals.
+        Calculates threat risk score and corresponding 0-100 trust score.
         """
         reasons = []
 
@@ -31,6 +31,7 @@ class IntelScorerService:
             reasons.append(f"Domain is listed in blacklisted {source}")
             return {
                 "risk_score": 100,
+                "trust_score": 0,
                 "risk": "HIGH_RISK",
                 "reasons": reasons
             }
@@ -120,7 +121,6 @@ class IntelScorerService:
         risk_score = min(100, score)
         
         # Apply Reputation Aging if not a feed match
-        # If the domain hasn't been verified in a while, age the score slowly down towards 80 if it is high, or lower
         last_updated = intel_data.get("last_updated")
         if last_updated:
             try:
@@ -128,7 +128,6 @@ class IntelScorerService:
                 days_since_update = (datetime.now(timezone.utc) - up_dt).days
                 if days_since_update > 0:
                     old_score = risk_score
-                    # Decay score by 2 points per day, but cap decay baseline at 80 for WARNING/HIGH warnings, or 40
                     decay = days_since_update * 2
                     if risk_score >= 70:
                         risk_score = max(80, risk_score - decay)
@@ -139,15 +138,21 @@ class IntelScorerService:
             except Exception:
                 pass
 
-        if risk_score >= 70:
-            verdict = "HIGH_RISK"
-        elif risk_score >= 40:
+        # Convert to 0-100 Trust Score (100 - risk_score)
+        trust_score = 100 - int(risk_score)
+
+        if trust_score >= 90:
+            verdict = "SAFE"
+        elif trust_score >= 60:
+            verdict = "LOW_RISK"
+        elif trust_score >= 30:
             verdict = "WARNING"
         else:
-            verdict = "SAFE"
+            verdict = "HIGH_RISK"
 
         return {
             "risk_score": int(risk_score),
+            "trust_score": trust_score,
             "risk": verdict,
             "reasons": reasons
         }

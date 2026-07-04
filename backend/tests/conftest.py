@@ -1,6 +1,18 @@
 """
 Test configuration for AnteClick Backend
+
+IMPORTANT: Environment variables must be set BEFORE any app module imports,
+because config.py instantiates Settings() at module level.
 """
+import os
+
+# ── Set required env vars BEFORE any app imports ──────────────────────────────
+os.environ.setdefault("API_KEY", "test-api-key-for-ci")
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+os.environ.setdefault("ENVIRONMENT", "test")
+
+# ── Now safe to import app modules ─────────────────────────────────────────────
 import pytest
 import asyncio
 import pytest_asyncio
@@ -15,9 +27,29 @@ def _mock_limiter_init(self, *args, **kwargs):
     self.enabled = False
 Limiter.__init__ = _mock_limiter_init
 
+# Globally override database connection to in-memory SQLite during testing
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+import app.database.session
+from app.database.session import Base
+from app.database.models import SafeDomain, PhishingDomain, Intelligence, Analytics, Campaign, FeedUpdate
+
+test_engine = create_engine(
+    "sqlite://",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
+)
+test_SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+Base.metadata.create_all(bind=test_engine)
+
+app.database.session.engine = test_engine
+app.database.session.SessionLocal = test_SessionLocal
+
 from app.main import app
 from app.core.config import settings
 from app.services.cache import cache
+
 
 class MockRedis:
     """In-memory mock Redis client for reliable offline testing"""
@@ -111,6 +143,7 @@ class MockRedis:
     def pipeline(self):
         return MockPipeline(self)
 
+
 class MockPipeline:
     def __init__(self, mock_redis):
         self.mock_redis = mock_redis
@@ -129,6 +162,7 @@ class MockPipeline:
         self.cmds = []
         return results
 
+
 @pytest.fixture(scope="session", autouse=True)
 def init_mock_redis():
     """Autouse fixture to globally patch cache.redis_client for lifespan testing"""
@@ -145,6 +179,7 @@ def init_mock_redis():
     if not cache.redis_client:
         cache.redis_client = MockRedis()
 
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
     """Create event loop for async tests"""
@@ -152,20 +187,24 @@ def event_loop() -> Generator:
     yield loop
     loop.close()
 
+
 @pytest.fixture
 def client() -> TestClient:
     """Create test client"""
     return TestClient(app)
+
 
 @pytest.fixture
 def api_headers() -> dict:
     """API headers with valid API key"""
     return {"X-API-Key": settings.api_key}
 
+
 @pytest.fixture
 def mock_api_key() -> str:
     """Mock API key for testing"""
     return settings.api_key
+
 
 @pytest_asyncio.fixture
 async def cache_service():

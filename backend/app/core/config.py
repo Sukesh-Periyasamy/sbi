@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # Rate Limiting
     rate_limit_per_minute: int = 60
     rate_limit_per_hour: int = 1000
+
+    # Task Scheduling Intervals (minutes)
+    openphish_interval_mins: int = 60
+    urlhaus_interval_mins: int = 60
+    phishtank_interval_mins: int = 720
+    tranco_interval_mins: int = 1440
     
     # External APIs (optional)
     virustotal_api_key: str = ""

@@ -15,6 +15,9 @@ from app.core.security import verify_api_key
 from app.core.config import settings
 from app.core.logging import logger
 
+from sqlalchemy.orm import Session
+from app.database.session import get_db
+
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
@@ -53,7 +56,8 @@ limiter = Limiter(key_func=get_remote_address)
 async def verify_package(
     request: Request,
     body: PackageVerifyRequest,
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    db: Session = Depends(get_db)
 ):
     """
     Verify an Android package for banking app impersonation.
@@ -116,6 +120,7 @@ async def verify_package(
         if verdict != "SAFE":
             target_bank = next((kw.upper() for kw in ["sbi", "hdfc", "icici", "axis", "paytm", "phonepe"] if kw in package_name), "Unknown")
             await analytics.log_package_detection(
+                db=db,
                 package_name=package_name,
                 risk_level=verdict,
                 risk_score=confidence,

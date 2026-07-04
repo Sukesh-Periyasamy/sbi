@@ -16,6 +16,8 @@ from app.services.threat_feeds import threat_feeds
 from app.api import analyze, health, verify_package, dashboard, intel
 
 
+from app.services.scheduler import scheduler_service
+
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
@@ -31,13 +33,17 @@ async def lifespan(app: FastAPI):
     # Connect to Redis
     await cache.connect()
     
-    # Start threat intelligence feed updater
+    # Start threat intelligence feed updater (initial sync)
     await threat_feeds.start()
+    
+    # Start scheduler
+    scheduler_service.start()
     
     yield
     
     # Shutdown
     logger.info("Shutting down AnteClick Backend API")
+    scheduler_service.shutdown()
     await threat_feeds.stop()
     await cache.disconnect()
 
@@ -46,7 +52,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AnteClick Backend API",
     description="Production backend for AnteClick phishing detection",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan
@@ -94,7 +100,7 @@ async def root():
     """Root endpoint"""
     return {
         "service": "AnteClick Backend API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "operational",
         "docs": "/docs" if not settings.is_production else "disabled in production"
     }

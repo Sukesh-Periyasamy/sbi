@@ -18,6 +18,10 @@ from app.services.page_scraper import page_scraper
 from app.services.brand_detector import brand_detector
 from app.services.intel_scorer import intel_scorer
 from app.services.threat_feeds import threat_feeds
+from app.database.session import SessionLocal
+from app.database.models import Intelligence, Campaign
+from app.repositories.intel import IntelligenceRepository
+from app.repositories.campaign import CampaignRepository
 
 # Cap concurrent background tasks to 3
 enrichment_semaphore = asyncio.Semaphore(3)
@@ -52,13 +56,14 @@ async def enrich_domain(domain: str) -> Dict[str, Any]:
     await intel_cache.track_job(domain, "running")
     start_time = datetime.now(timezone.utc)
     
+    db = SessionLocal()
     try:
         # Use semaphore to limit concurrency
         async with enrichment_semaphore:
             logger.info(f"Started background enrichment for: {domain}")
             
             # Check if domain exists in threat feeds first
-            is_in_feed = await threat_feeds.is_known_phishing(domain)
+            is_in_feed = await threat_feeds.is_known_phishing(db, domain)
             feed_source = ""
             if is_in_feed:
                 # Resolve primary feed source name
@@ -150,7 +155,29 @@ async def enrich_domain(domain: str) -> Dict[str, Any]:
             new_risk = score_data["risk"]
             new_reasons = score_data["reasons"] or ["Threat Intelligence Background Enrichment"]
             intel_data["risk_score"] = new_score
+            intel_data["trust_score"] = score_data["trust_score"]
             
+            # Sync to PostgreSQL (Source of Truth)
+            campaign_id = None
+            if campaign_name:
+                db_cmp = CampaignRepository.register_hit(
+                    db,
+                    campaign_name=campaign_name,
+                    brand=brand,
+                    registrar=registrar,
+                    country=country
+                )
+                campaign_id = db_cmp.id
+            
+            # Save intelligence profile via repository
+            intel_data["status"] = new_risk
+            IntelligenceRepository.save_profile(
+                db,
+                domain=domain,
+                profile_data=intel_data,
+                campaign_id=campaign_id
+            )
+
             # Save to intel database (Redis Hash)
             await intel_cache.save_intel(domain, intel_data)
             
@@ -250,6 +277,8 @@ async def enrich_domain(domain: str) -> Dict[str, Any]:
         logger.error(f"Enrichment job failed for {domain}: {e}", exc_info=True)
         await intel_cache.track_job(domain, "failed")
     finally:
+        # Close DB session
+        db.close()
         # Release Lock
         await intel_cache.release_lock(domain)
         

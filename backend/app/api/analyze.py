@@ -16,6 +16,9 @@ from app.core.security import verify_api_key
 from app.core.config import settings
 from app.core.logging import logger
 
+from sqlalchemy.orm import Session
+from app.database.session import get_db
+
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
@@ -43,7 +46,7 @@ limiter = Limiter(key_func=get_remote_address)
     **Rate Limits:**
     - 60 requests per minute per IP
     - 1000 requests per hour per IP
-    
+    - 
     **Authentication:**
     - Requires X-API-Key header
     """
@@ -59,7 +62,8 @@ async def analyze_domain(
         max_length=255,
         examples=["sbi-secure-login.xyz"]
     ),
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    db: Session = Depends(get_db)
 ):
     """
     Analyze domain for phishing threats.
@@ -119,7 +123,7 @@ async def analyze_domain(
     # Perform analysis
     try:
         # A) Check threat intelligence feeds first (O(1) Redis lookup)
-        is_in_feed = await threat_feeds.is_known_phishing(domain)
+        is_in_feed = await threat_feeds.is_known_phishing(db, domain)
         if is_in_feed:
             response_data = {
                 "domain": domain,
@@ -141,6 +145,19 @@ async def analyze_domain(
                 is_safe_domain = await cache.redis_client.sismember("safe_domains", domain)
             except Exception as ce:
                 logger.error(f"Redis safe_domains check failed: {ce}")
+
+        # Fallback to PostgreSQL
+        if not is_safe_domain:
+            try:
+                from app.database.models import SafeDomain
+                db_safe = db.query(SafeDomain).filter_by(domain=domain).first()
+                if db_safe:
+                    is_safe_domain = True
+                    # Re-cache in Redis for future hits
+                    if cache.redis_client:
+                        await cache.redis_client.sadd("safe_domains", domain)
+            except Exception as dbe:
+                logger.error(f"PostgreSQL safe_domains lookup error: {dbe}")
 
         if is_safe_domain:
             # Log whitelist hit for dashboard analytics
@@ -201,6 +218,7 @@ async def analyze_domain(
         if verdict != "SAFE":
             target_bank = next((kw.upper() for kw in ["sbi", "hdfc", "icici", "axis", "paytm", "phonepe"] if kw in domain), "Unknown")
             await analytics.log_url_detection(
+                db=db,
                 domain=domain,
                 risk_level=verdict,
                 risk_score=score,

@@ -1,8 +1,9 @@
 """
 models.py - SQLAlchemy database models for AnteClick
 """
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from app.database.session import Base
@@ -66,6 +67,8 @@ class Intelligence(Base):
     # Analytics & Campaigns
     fingerprint = Column(Text, nullable=True)
     campaign = Column(String(100), nullable=True)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=True)
+    campaign_rel = relationship("Campaign", back_populates="intelligences")
     
     # Engine versions
     model_version = Column(String(50), default="1.0.0")
@@ -107,3 +110,18 @@ class Campaign(Base):
     status = Column(String(50), default="Active", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    intelligences = relationship("Intelligence", back_populates="campaign_rel", cascade="all, delete-orphan")
+
+
+class FeedUpdate(Base):
+    """Execution updates history for safe domain and phishing feeds"""
+    __tablename__ = "feed_updates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    feed_name = Column(String(50), nullable=False)
+    version = Column(String(50), nullable=True)
+    downloaded_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    records = Column(Integer, default=0, nullable=False)
+    status = Column(String(50), default="success", nullable=False)
+    duration = Column(Float, default=0.0, nullable=False)
