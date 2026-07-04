@@ -2,12 +2,15 @@
 /health endpoint - Service health check
 """
 from fastapi import APIRouter, Query
+from fastapi import Request
 from datetime import datetime, timezone
 
 from app.models.schemas import HealthCheckResponse
 from app.services.cache import cache
 from app.core.config import settings
 from app.core.logging import logger
+
+API_VERSION = "2.0.0"
 
 router = APIRouter()
 
@@ -46,7 +49,7 @@ async def health_check(
     if simple:
         return {
             "status": "ok" if redis_connected else "degraded",
-            "version": "1.0.0",
+            "version": API_VERSION,
             "environment": settings.environment,
             "redis_connected": redis_connected
         }
@@ -54,7 +57,7 @@ async def health_check(
     # Full detailed format for monitoring (default)
     response = HealthCheckResponse(
         status="healthy" if redis_connected else "degraded",
-        version="1.0.0",
+        version=API_VERSION,
         environment=settings.environment,
         redis_connected=redis_connected,
         timestamp=datetime.now(timezone.utc)
