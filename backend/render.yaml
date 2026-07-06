@@ -5,6 +5,7 @@ services:
     plan: starter
     healthCheckPath: /health
     autoDeploy: true
+    preDeployCommand: alembic upgrade head
     domains:
       - api.anteclick.app
     envVars:
