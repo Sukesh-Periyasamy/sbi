@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ForceGraph2D } from 'react-force-graph-2d'
+import ForceGraph2D from 'react-force-graph-2d'
 import { Search, Shield, AlertTriangle, Link as LinkIcon, Globe, Lock, Key, Activity, Clock } from 'lucide-react'
 
 export default function ThreatExplorer() {

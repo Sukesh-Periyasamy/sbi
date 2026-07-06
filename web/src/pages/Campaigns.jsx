@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Target, Calendar, Globe, Database, Network } from 'lucide-react'
-import { ForceGraph2D } from 'react-force-graph-2d'
+import ForceGraph2D from 'react-force-graph-2d'
 
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState([])
