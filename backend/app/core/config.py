@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redis_cache_ttl: int = 600  # 10 minutes
     
     # Database (PostgreSQL)
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/postgres"
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
     
     # Rate Limiting
     rate_limit_per_minute: int = 60
