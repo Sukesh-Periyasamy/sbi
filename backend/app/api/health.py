@@ -4,9 +4,12 @@
 from fastapi import APIRouter, Query
 from fastapi import Request
 from datetime import datetime, timezone
+from sqlalchemy import text
 
 from app.models.schemas import HealthCheckResponse
 from app.services.cache import cache
+from app.database.session import SessionLocal
+from app.services.scheduler import scheduler_service
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -19,7 +22,7 @@ router = APIRouter()
     "/health",
     response_model=HealthCheckResponse,
     summary="Health check endpoint",
-    description="Returns service health status and Redis connection state"
+    description="Returns service health status, DB connection, Redis connection, and scheduler status"
 )
 @router.head(
     "/health",
@@ -30,41 +33,47 @@ router = APIRouter()
 async def health_check(
     simple: bool = Query(
         False,
-        description="Return simplified {status: ok} format"
+        description="Return simplified format"
     )
 ):
     """
     Health check endpoint for monitoring and load balancers.
-    
-    Args:
-        simple: If True, returns {"status": "ok"} format
-    
-    Returns:
-        HealthCheckResponse with service status or simple {"status": "ok"}
     """
-    redis_connected = await cache.is_connected()
+    # 1. Redis status
+    redis_ok = await cache.is_connected()
+    redis_status = "connected" if redis_ok else "disconnected"
     
-    # BEST FIX: Always return full structure for Render compatibility
-    # Simple format option kept for backward compatibility
-    if simple:
-        return {
-            "status": "ok" if redis_connected else "degraded",
-            "version": API_VERSION,
-            "environment": settings.environment,
-            "redis_connected": redis_connected
-        }
+    # 2. Database status
+    database_status = "disconnected"
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        database_status = "connected"
+    except Exception as e:
+        logger.error(f"Health check: Database connection failed: {e}")
+        
+    # 3. Scheduler status
+    scheduler_status = "stopped"
+    try:
+        if scheduler_service.scheduler and scheduler_service.scheduler.running:
+            scheduler_status = "running"
+    except Exception as e:
+        logger.error(f"Health check: Scheduler status check failed: {e}")
+        
+    # Determine overall status
+    is_healthy = (redis_status == "connected" and 
+                  database_status == "connected" and 
+                  scheduler_status == "running")
+    status = "healthy" if is_healthy else "degraded"
     
-    # Full detailed format for monitoring (default)
     response = HealthCheckResponse(
-        status="healthy" if redis_connected else "degraded",
+        status=status,
         version=API_VERSION,
-        environment=settings.environment,
-        redis_connected=redis_connected,
-        timestamp=datetime.now(timezone.utc)
+        database=database_status,
+        redis=redis_status,
+        scheduler=scheduler_status
     )
-    
-    if not redis_connected:
-        logger.warning("Health check: Redis not connected")
     
     return response
 

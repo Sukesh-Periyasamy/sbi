@@ -51,11 +51,28 @@ object ThreatRepository {
         .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
         .writeTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
+        .connectionSpecs(listOf(
+            okhttp3.ConnectionSpec.MODERN_TLS,
+            okhttp3.ConnectionSpec.COMPATIBLE_TLS
+        ))
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
                 .addHeader("X-API-Key", BuildConfig.API_KEY)
                 .build()
             chain.proceed(request)
+        }
+        .addNetworkInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val handshake = response.handshake
+            if (handshake != null) {
+                val tlsVersion = handshake.tlsVersion
+                val cipherSuite = handshake.cipherSuite
+                val peerCertificates = handshake.peerCertificates
+                val subject = (peerCertificates.firstOrNull() as? java.security.cert.X509Certificate)?.subjectDN?.name
+                val safeUrl = chain.request().url.newBuilder().query(null).build().toString()
+                Log.i(TAG, "TLS Session Established: URL=$safeUrl, TLS=$tlsVersion, CipherSuite=$cipherSuite, Subject=$subject")
+            }
+            response
         }
         .addInterceptor(
             HttpLoggingInterceptor { message ->
@@ -134,14 +151,16 @@ object ThreatRepository {
         var lastException: Exception? = null
 
         repeat(MAX_RETRIES) { attempt ->
+            val attemptNum = attempt + 1
             if (attempt > 0) {
                 val backoffMs = RETRY_BASE_MS * (1L shl (attempt - 1))   // 500, 1000
                 Log.d(TAG, "Retry $attempt for $domain — waiting ${backoffMs}ms")
                 delay(backoffMs)
             }
 
+            val startTime = System.currentTimeMillis()
             try {
-                Log.d(TAG, "Fetching reputation for $domain (attempt ${attempt + 1}/$MAX_RETRIES)")
+                Log.d(TAG, "Fetching reputation for $domain (attempt $attemptNum/$MAX_RETRIES)")
                 val response = api.analyze(domain)
 
                 // Success — cache and return
@@ -151,14 +170,40 @@ object ThreatRepository {
 
             } catch (e: Exception) {
                 lastException = e
-                Log.w(TAG, "Attempt ${attempt + 1} failed for $domain: ${e.message}")
+                val elapsedTime = System.currentTimeMillis() - startTime
+                logTlsFailure(domain, attemptNum, elapsedTime, e)
             }
         }
 
         // All retries exhausted — offline or server error
         Log.w(TAG, "All $MAX_RETRIES attempts failed for $domain — using offline fallback")
-        lastException?.let { Log.w(TAG, "Last error: ${it.javaClass.simpleName}: ${it.message}") }
+        lastException?.let {
+            val root = getRootCause(it)
+            Log.w(TAG, "Last error summary: ${it.javaClass.simpleName}: ${it.message}. Root cause: ${root.javaClass.simpleName}: ${root.message}")
+        }
         return null
+    }
+
+    private fun logTlsFailure(domain: String, attempt: Int, elapsedTime: Long, exception: Exception) {
+        val exceptionChain = StringBuilder()
+        var current: Throwable? = exception
+        var rootCause: Throwable = exception
+        while (current != null) {
+            exceptionChain.append(current.javaClass.name).append(": ").append(current.message).append(" -> ")
+            rootCause = current
+            current = current.cause
+        }
+        val chainStr = exceptionChain.toString().removeSuffix(" -> ")
+        val safeUrl = "${BASE_URL}analyze?domain=[redacted]"
+        Log.e(TAG, "HTTPS request failed: URL=$safeUrl, Attempt=$attempt, ElapsedTime=${elapsedTime}ms, Chain=[$chainStr], RootCause=${rootCause.javaClass.name}: ${rootCause.message}")
+    }
+
+    private fun getRootCause(throwable: Throwable): Throwable {
+        var root = throwable
+        while (root.cause != null) {
+            root = root.cause!!
+        }
+        return root
     }
 
     /**

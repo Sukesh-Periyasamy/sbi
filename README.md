@@ -132,3 +132,24 @@ python scripts/import_tranco.py
 2. Allow Gradle sync to complete.
 3. Configure `BACKEND_URL` and `API_KEY` in `local.properties`.
 4. Build and run debug variant on your device.
+
+---
+
+## 🔒 Production TLS & Networking Requirements
+
+For production deployment (e.g., `https://api.anteclick.app/`), the following networking rules apply:
+
+### 1. Domain Registration & Routing
+* The backend API server runs on Render (routed via Cloudflare).
+* To prevent TLS handshake failures (`SSLV3_ALERT_HANDSHAKE_FAILURE`), the custom domain `api.anteclick.app` **must** be registered as a Custom Domain in the Render dashboard under the `AnteClick-backend` service.
+* Render's Blueprint specification (`render.yaml`) includes the custom domain definition.
+
+### 2. TLS Settings
+* **Protocols:** Must support TLS 1.2 and TLS 1.3.
+* **Cipher Suites:** Restrictive modern cipher suites are enforced. OkHttp is explicitly configured to support `ConnectionSpec.MODERN_TLS` and `ConnectionSpec.COMPATIBLE_TLS`.
+* **Certificate Authority:** Let's Encrypt / Cloudflare Edge Certificates. Hostname and SAN must match `api.anteclick.app`.
+
+### 3. Android Networking Client
+* SSL Verification is strictly enforced (no unsafe trust managers or ignored certificate warnings).
+* Advanced network interceptors measure request latency and log precise TLS connection status (TLS version, cipher suite, and certificate subject) on successful connections.
+* Robust error handlers capture complete exception chains and extract the root cause on handshake or connection failures (logging safely without leaking secrets or API keys).

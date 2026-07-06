@@ -5,6 +5,8 @@ services:
     plan: starter
     healthCheckPath: /health
     autoDeploy: true
+    domains:
+      - api.anteclick.app
     envVars:
       - key: API_KEY
         generateValue: true

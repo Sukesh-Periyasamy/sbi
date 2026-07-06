@@ -693,3 +693,34 @@ Your AnteClick backend is now deployed and ready for production!
 private const val BASE_URL = "https://your-api-domain.com/"
 private const val API_KEY = "your-api-key-here"
 ```
+
+---
+
+## 🔒 Custom Domain & TLS Configuration (Render / Cloudflare)
+
+When deploying to a custom domain (e.g., `https://api.anteclick.app/`) via Render/Cloudflare, you must configure the following to avoid TLS handshake failures:
+
+### 1. Register Custom Domain in Render
+Render maps traffic to specific web services based on the request's hostname. If you access a custom domain before registering it in Render, Cloudflare (Render's internal edge router) will return a `409 Conflict` (HTTP) or trigger a `SSLV3_ALERT_HANDSHAKE_FAILURE` (HTTPS).
+
+* **Blueprint Setup:** Add the domain configuration to your `render.yaml`:
+  ```yaml
+  services:
+    - type: web
+      name: AnteClick-backend
+      domains:
+        - api.anteclick.app
+  ```
+* **Render Console:** Navigate to the Web Service -> **Settings** -> **Custom Domains** and verify that `api.anteclick.app` is added and validated.
+
+### 2. DNS Target Records
+* **CNAME:** Point `api.anteclick.app` to your Render service URL (e.g., `sbi-qp6l.onrender.com`).
+* Do not use standard IP addresses (A records) unless flattening is not supported by your registrar, in which case use Render's target IPs.
+
+### 3. Certificate Issuance & Expiration
+* Render manages certificates automatically via Let's Encrypt.
+* Renewal is handled dynamically every 90 days as long as the DNS CNAME record remains correctly pointed.
+
+### 4. Client Compatibility (TLS 1.2 / 1.3)
+* OkHttp on Android is configured to explicitly use `ConnectionSpec.MODERN_TLS` and `ConnectionSpec.COMPATIBLE_TLS`. This ensures the client hello matches Render's supported cipher suites.
+* Hostname verification and certificate validation are strictly enabled to preserve production security.

@@ -50,17 +50,17 @@ class HealthCheckResponse(BaseModel):
     
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
-    environment: str = Field(..., description="Environment (production/development)")
-    redis_connected: bool = Field(..., description="Redis connection status")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    database: str = Field(..., description="Database connection status")
+    redis: str = Field(..., description="Redis connection status")
+    scheduler: str = Field(..., description="Scheduler running status")
     
     model_config = ConfigDict(json_schema_extra={
         "example": {
             "status": "healthy",
-            "version": "1.0.0",
-            "environment": "production",
-            "redis_connected": True,
-            "timestamp": "2024-01-15T10:30:00Z"
+            "version": "2.0.0",
+            "database": "connected",
+            "redis": "connected",
+            "scheduler": "running"
         }
     })
 

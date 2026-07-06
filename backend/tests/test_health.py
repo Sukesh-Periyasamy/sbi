@@ -14,8 +14,9 @@ def test_health_check(client: TestClient):
     
     assert "status" in data
     assert data["version"] == "2.0.0"
-    assert "redis_connected" in data
-    assert "timestamp" in data
+    assert "database" in data
+    assert "redis" in data
+    assert "scheduler" in data
 
 
 def test_readiness_check(client: TestClient):

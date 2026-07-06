@@ -63,6 +63,7 @@ class ThreatLoggerPersistenceTest {
     fun `log and getAll preserve existing API behavior`() {
         ThreatLogger.init(context)
         ThreatLogger.log("phishing.com", "Phishing")
+        Thread.sleep(5)
         ThreatLogger.log("malware.net", "Malware")
 
         val all = ThreatLogger.getAll()

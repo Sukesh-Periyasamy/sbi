@@ -130,3 +130,17 @@ Required variables:
 git tag -a v2.0.0-rc1 -m "AnteClick v2.0.0 Release Candidate 1"
 git push origin v2.0.0-rc1
 ```
+
+---
+
+## 🔧 RC1 Fixes & Resolved Issues
+
+### 🔒 TLS Handshake & Domain Routing Fix
+* **Issue:** Android client requests to `https://api.anteclick.app/` failed with `SSLV3_ALERT_HANDSHAKE_FAILURE` and connection errors.
+* **Root Cause:** The custom domain `api.anteclick.app` was pointed to Render via DNS CNAME, but not added to the Render web service configuration. Cloudflare (Render's reverse proxy) rejected the client hello because it had no hostname certificate matching the domain.
+* **Resolution:**
+  1. Configured Render blueprint `render.yaml` with the custom domain `api.anteclick.app` for routing and auto TLS provisioning.
+  2. Updated the Android client (`ThreatRepository` and `BackendEnrichmentService`) to explicitly require modern and compatible TLS specs (`ConnectionSpec.MODERN_TLS`, `ConnectionSpec.COMPATIBLE_TLS`).
+  3. Replaced generic logging with highly detailed TLS connection interceptors and error logging, capturing request URL, latency, TLS versions, cipher suites, certificate subject names, and full exception chains without exposing credentials.
+  4. Redesigned the `/health` endpoint to dynamically verify Redis connection, PostgreSQL connection, and APScheduler running state, returning the correct production JSON structure.
+  5. Created `verify_api.py` in `backend/scripts/` to automate deployment checks.

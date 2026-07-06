@@ -36,19 +36,17 @@ class TestHealthCheck:
         assert "status" in data
         assert data["status"] in ["healthy", "degraded"]
         assert "version" in data
-        assert "environment" in data
-        assert "redis_connected" in data
-        assert "timestamp" in data
+        assert "database" in data
+        assert "redis" in data
+        assert "scheduler" in data
     
     def test_health_ok_format(self, client):
-        """Verify /health can return simple {status: ok} format"""
+        """Verify /health format matches production specification"""
         response = client.get("/health")
         data = response.json()
         
-        # Should have status field
         assert "status" in data
-        # Status should be healthy or degraded
-        assert data["status"] in ["healthy", "degraded", "ok"]
+        assert data["status"] in ["healthy", "degraded"]
     
     def test_ready_endpoint(self, client):
         """Verify /ready endpoint for Kubernetes"""

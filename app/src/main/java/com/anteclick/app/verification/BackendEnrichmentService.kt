@@ -45,11 +45,28 @@ object BackendEnrichmentService {
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS)
         .writeTimeout(8, TimeUnit.SECONDS)
+        .connectionSpecs(listOf(
+            okhttp3.ConnectionSpec.MODERN_TLS,
+            okhttp3.ConnectionSpec.COMPATIBLE_TLS
+        ))
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
                 .addHeader("X-API-Key", BuildConfig.API_KEY)
                 .build()
             chain.proceed(request)
+        }
+        .addNetworkInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val handshake = response.handshake
+            if (handshake != null) {
+                val tlsVersion = handshake.tlsVersion
+                val cipherSuite = handshake.cipherSuite
+                val peerCertificates = handshake.peerCertificates
+                val subject = (peerCertificates.firstOrNull() as? java.security.cert.X509Certificate)?.subjectDN?.name
+                val safeUrl = chain.request().url.newBuilder().query(null).build().toString()
+                Log.i(TAG, "TLS Session Established: URL=$safeUrl, TLS=$tlsVersion, CipherSuite=$cipherSuite, Subject=$subject")
+            }
+            response
         }
         .addInterceptor(
             HttpLoggingInterceptor { message ->
@@ -83,6 +100,7 @@ object BackendEnrichmentService {
         certHash: String?,
         localResult: PackageRiskResult
     ): PackageRiskResult {
+        val startTime = System.currentTimeMillis()
         return try {
             val response = withTimeoutOrNull(TIMEOUT_MS) {
                 api.verifyPackage(PackageVerifyRequest(packageName, certHash))
@@ -106,9 +124,32 @@ object BackendEnrichmentService {
                 localResult
             }
         } catch (e: Exception) {
-            Log.w(TAG, "BackendEnrichmentService: error for $packageName — ${e.javaClass.simpleName}: ${e.message}")
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logTlsFailure(packageName, elapsedTime, e)
             localResult
         }
+    }
+
+    private fun logTlsFailure(packageName: String, elapsedTime: Long, exception: Exception) {
+        val exceptionChain = StringBuilder()
+        var current: Throwable? = exception
+        var rootCause: Throwable = exception
+        while (current != null) {
+            exceptionChain.append(current.javaClass.name).append(": ").append(current.message).append(" -> ")
+            rootCause = current
+            current = current.cause
+        }
+        val chainStr = exceptionChain.toString().removeSuffix(" -> ")
+        val safeUrl = "${BuildConfig.BACKEND_URL}verify-package"
+        Log.e(TAG, "HTTPS request failed: URL=$safeUrl, Package=$packageName, ElapsedTime=${elapsedTime}ms, Chain=[$chainStr], RootCause=${rootCause.javaClass.name}: ${rootCause.message}")
+    }
+
+    private fun getRootCause(throwable: Throwable): Throwable {
+        var root = throwable
+        while (root.cause != null) {
+            root = root.cause!!
+        }
+        return root
     }
 
     /**
