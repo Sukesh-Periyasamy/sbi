@@ -32,11 +32,25 @@ class PhishingDomainRepository:
 
     @staticmethod
     def save_batch(db: Session, domains: List[str], source: str):
-        """Bulk save phishing domains in batches of 1000"""
+        """Bulk save phishing domains with ON CONFLICT handling"""
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        
+        # Check database dialect
+        is_postgres = db.bind.dialect.name == "postgresql"
+        
         for i in range(0, len(domains), 1000):
             batch = domains[i:i+1000]
-            db.bulk_save_objects([
-                PhishingDomain(domain=d, source=source, confidence=1.0)
-                for d in batch
-            ])
+            if is_postgres:
+                stmt = pg_insert(PhishingDomain).values([
+                    {"domain": d, "source": source, "confidence": 1.0}
+                    for d in batch
+                ]).on_conflict_do_nothing(index_elements=['domain'])
+                db.execute(stmt)
+            else:
+                # SQLite fallback for local testing
+                for d in batch:
+                    exists = db.query(PhishingDomain).filter_by(domain=d).first()
+                    if not exists:
+                        db.add(PhishingDomain(domain=d, source=source, confidence=1.0))
         db.commit()
+
